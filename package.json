@@ -26,6 +26,10 @@
   "homepage": "https://github.com/mortelli/tsb-technical-test#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
-    "hardhat": "^2.11.1"
+    "@typescript-eslint/eslint-plugin": "^5.37.0",
+    "@typescript-eslint/parser": "^5.37.0",
+    "eslint": "^8.23.1",
+    "hardhat": "^2.11.1",
+    "typescript": "^4.8.3"
   }
 }
