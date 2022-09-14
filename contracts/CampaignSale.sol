@@ -12,9 +12,17 @@ contract CampaignSale is ICampaignSale {
 
     using Counters for Counters.Counter;
 
+    /// @notice ERC20 token used to contribute to and fund existing campaigns
+    address public erc20Token;
+
     /// @dev Storage for campaigns, running or completed
     mapping(uint256 => Campaign) private campaigns;
     
+    /// @param _erc20Token Contract address of the ERC20 token used to contribute to and fund existing campaigns
+    constructor(address _erc20Token){
+        erc20Token = _erc20Token;
+    }
+
     /// @notice Launch a new campaign. 
     /// @param _goal The goal in token to raise to unlock the tokens for the project
     /// @param _startAt Starting date of the campaign
