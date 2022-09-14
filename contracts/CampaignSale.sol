@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "@openzeppelin/contracts/utils/Counters.sol";
+
 import "./interfaces/ICampaignSale.sol";
 
 /// @title Contract for fundraising campaigns
 /// @author @mortelli
 /// @dev This contract was developed as an technical exercise
 contract CampaignSale is ICampaignSale {
+
+    using Counters for Counters.Counter;
+
+    /// @dev Storage for campaigns, running or completed
+    mapping(uint256 => Campaign) private campaigns;
     
     /// @notice Launch a new campaign. 
     /// @param _goal The goal in token to raise to unlock the tokens for the project
@@ -54,7 +61,10 @@ contract CampaignSale is ICampaignSale {
 
     /// @notice Get the campaign info
     /// @param _id Campaign's id
-    function getCampaign(uint _id) external returns (Campaign memory campaign) {
+    function getCampaign(uint _id) external view returns (Campaign memory campaign) {
+        campaign = campaigns[_id];
+        require(campaign.creator != address(0), "campaign does not exist");
 
+        return campaign;
     }
 }
