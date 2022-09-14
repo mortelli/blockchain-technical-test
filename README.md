@@ -1,2 +1,1 @@
-# tsb-technical-test
-The Sandbox: Blockchain Technical Test
+# The Sandbox: Blockchain Technical Test
