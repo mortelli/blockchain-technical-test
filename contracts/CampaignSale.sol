@@ -15,11 +15,18 @@ contract CampaignSale is ICampaignSale {
     /// @notice ERC20 token used to contribute to and fund existing campaigns
     address public erc20Token;
 
+    /// @dev Counter used for Campaign IDs
+    Counters.Counter private idCounter;
+
+    /// @notice Maximum amount of time a campaign can last
+    uint256 public maximumCampaignLength = 90 days;
+
     /// @dev Storage for campaigns, running or completed
     mapping(uint256 => Campaign) private campaigns;
     
     /// @param _erc20Token Contract address of the ERC20 token used to contribute to and fund existing campaigns
     constructor(address _erc20Token){
+        require(_erc20Token != address(0), "erc20 cannot be zero address");
         erc20Token = _erc20Token;
     }
 
@@ -32,7 +39,31 @@ contract CampaignSale is ICampaignSale {
         uint32 _startAt,
         uint32 _endAt
     ) external {
+        require(block.timestamp < _startAt, "campaign must start in the future");
+        require(_startAt < _endAt, "campaign must end after it starts");
+        // if needed, user can query maximum length through the public field
+        require(_endAt - _startAt < maximumCampaignLength, "campaign length exceeds maximum"); 
 
+        idCounter.increment();
+        uint256 campaignId = idCounter.current();
+
+        Campaign memory campaign = Campaign({
+            creator: msg.sender,
+            goal: _goal,
+            pledged: 0,
+            startAt: _startAt,
+            endAt: _endAt,
+            claimed: false
+        });
+        campaigns[campaignId] = campaign;
+
+        emit LaunchCampaign(
+            campaignId,
+            campaign.creator,
+            campaign.goal,
+            campaign.startAt,
+            campaign.endAt
+        );
     }  
 
     /// @notice Cancel a campaign
