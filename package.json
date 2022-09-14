@@ -9,6 +9,8 @@
     "rebuild": "npm run clean && npm run compile",
     "start": "npx hardhat node",
     "lint-sol": "solhint 'contracts/**/*.sol'",
+    "lint-ts": "npx eslint .",
+    "lint-ts-fix": "npx eslint . --fix",
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage",
     "help": "npx hardhat help"
