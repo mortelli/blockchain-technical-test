@@ -8,6 +8,7 @@ import {
   daysToSeconds,
   CampaignParams,
   launchCampaign,
+  cancelCampaign,
 } from "./utils/funcs";
 
 async function verifyCampaign(
@@ -53,7 +54,7 @@ describe("Get campaign", function () {
 
   it("should succeed for first ID after creating a campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(10); // 10 days into the future
+    const startTime = currentTime + daysToSeconds(10);
     const campaign = {
       creator: alice,
       goal: 10000,
@@ -61,12 +62,30 @@ describe("Get campaign", function () {
       endTime: startTime + daysToSeconds(10),
     };
 
-    const id = await launchCampaign(this.campaignSale, campaign);
-    await verifyCampaign(this.campaignSale, id, campaign);
+    await launchCampaign(this.campaignSale, campaign);
+    await verifyCampaign(this.campaignSale, 1, campaign);
   });
 
   it("should fail for second ID after creating a campaign", async function () {
     await expect(this.campaignSale.getCampaign(2)).to.be.revertedWith(
+      "campaign does not exist"
+    );
+  });
+
+  it("should fail for cancelled campaign", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(1);
+    const campaign = {
+      creator: bob,
+      goal: 20000,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(14),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+    await cancelCampaign(this.campaignSale, bob, id);
+
+    await expect(this.campaignSale.getCampaign(id)).to.be.revertedWith(
       "campaign does not exist"
     );
   });

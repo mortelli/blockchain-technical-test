@@ -51,3 +51,12 @@ export async function launchCampaign(
 
   return event.id;
 }
+
+export async function cancelCampaign(
+  campaignSale: Contract,
+  creator: SignerWithAddress,
+  id: number
+): Promise<void> {
+  const tx = await campaignSale.connect(creator).cancelCampaign(id);
+  await tx.wait();
+}
