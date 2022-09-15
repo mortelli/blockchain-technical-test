@@ -41,8 +41,7 @@ contract CampaignSale is ICampaignSale {
         require(_goal > 0, "goal must be greater than 0");
         require(block.timestamp < _startAt, "campaign must start in the future");
         require(_startAt < _endAt, "campaign must end after it starts");
-        // if needed, user can query maximum length through the public field
-        require(_endAt - _startAt < maximumCampaignLength, "campaign length exceeds maximum"); 
+        require(_endAt - _startAt <= maximumCampaignLength, "campaign length exceeds maximum"); 
 
         idCounter.increment();
         uint256 campaignId = idCounter.current();
@@ -50,10 +49,10 @@ contract CampaignSale is ICampaignSale {
         Campaign memory campaign = Campaign({
             creator: msg.sender,
             goal: _goal,
-            pledged: 0,
+            pledged: 0, // campaigns start with 0 tokens pledged by default
             startAt: _startAt,
             endAt: _endAt,
-            claimed: false
+            claimed: false // campaigns start unclaimed by default
         });
         campaigns[campaignId] = campaign;
 
