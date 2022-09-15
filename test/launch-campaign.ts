@@ -1,9 +1,18 @@
 import { expect } from "chai";
+import { ethers } from "hardhat";
+import { Event } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MAXIMUM_CAMPAIGN_LENGTH } from "./utils/consts";
 import { deployCampaignSale, getCurrentTimeInSeconds, daysToSeconds } from "./utils/funcs";
 
 describe("Launch campaign", function () { 
+  // accounts
+  let alice: SignerWithAddress, bob: SignerWithAddress, charlie: SignerWithAddress;
+ 
   before(async function(){
+    [alice, bob, charlie] = await ethers.getSigners();
+    this.campaignCreators = [alice, bob, charlie];
+
     // deployed contract
     this.campaignSale = await deployCampaignSale();
     
@@ -78,5 +87,54 @@ describe("Launch campaign", function () {
         endTime,
       )
     ).to.be.revertedWith("campaign length exceeds maximum");
+  });
+
+  it("should succeed for valid campaign parameters", async function () {
+    // tokens to reach as campaign goals
+    const goals = [1, 100, 1000000]; 
+    // days into the future for campaign start times, in seconds
+    const startTimeOffsets = [1, 10, 100].map(x => daysToSeconds(x)); 
+    // campaign lengths, in seconds
+    const lengths = [1, 30, 90].map(x => daysToSeconds(x));
+    // first created campaign ID
+    let expectedCampaignId = 1;
+    // used to switch campaigncreators
+    let creatorIndex = 1;
+
+    // combine valid params for campaign creation
+    for (const goal of goals){
+      for (const offset of startTimeOffsets){
+        const currentTime = await getCurrentTimeInSeconds();
+        const startTime = currentTime + offset;
+
+        for (const length of lengths){
+          const endTime = startTime + length;
+
+          // switch creator each time
+          const creator = this.campaignCreators[creatorIndex % this.campaignCreators.length]
+
+          const tx = await this.campaignSale.connect(creator).launchCampaign(
+            goal,
+            startTime,
+            endTime,
+          );
+          const response = await tx.wait();
+          
+          // check event data
+          const event = response.events?.find((e: Event) => e.event == 'LaunchCampaign').args;
+          expect(event.id).to.equal(expectedCampaignId);
+          expect(event.creator).to.equal(creator.address);
+          expect(event.goal).to.equal(goal);
+          expect(event.startAt).to.equal(startTime);
+          expect(event.endAt).to.equal(endTime);
+
+          // check contract storage    
+
+          // increase counters for next iteration
+          expectedCampaignId++;
+          creatorIndex++;
+        }
+      }
+    }
   });
 });
