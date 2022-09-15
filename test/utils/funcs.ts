@@ -1,5 +1,15 @@
 import { ethers } from "hardhat";
 import { Contract } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
+export function daysToSeconds(days: number): number{
+    return days * 60 * 60 * 24;
+}
+
+export async function getCurrentTimeInSeconds(): Promise<number> {
+    const currentBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
+    return currentBlock.timestamp;
+}
 
 export async function deployTestErc20(): Promise<Contract> {
     const erc20Factory = await ethers.getContractFactory('ERC20');
@@ -18,11 +28,18 @@ export async function deployCampaignSale(): Promise<Contract> {
     return campaignSale;
 }
 
-export function daysToSeconds(days: number): number{
-    return days * 60 * 60 * 24;
+export interface CampaignParams {
+    creator: SignerWithAddress,
+    goal: number, // token quantity
+    startTime: number, // block timestamp
+    endTime: number,  // blocktimestamp
 }
 
-export async function getCurrentTimeInSeconds(): Promise<number> {
-    const currentBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber());
-    return currentBlock.timestamp;
+export async function launchCampaign(campaignSale: Contract, params: CampaignParams): Promise<void>{
+    const tx = await campaignSale.connect(params.creator).launchCampaign(
+        params.goal,
+        params.startTime,
+        params.endTime,
+      );
+    await tx.wait();
 }

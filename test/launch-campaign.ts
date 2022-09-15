@@ -98,10 +98,10 @@ describe("Launch campaign", function () {
     const lengths = [1, 30, 90].map(x => daysToSeconds(x));
     // first created campaign ID
     let expectedCampaignId = 1;
-    // used to switch campaigncreators
+    // used to switch campaign creators
     let creatorIndex = 1;
 
-    // combine valid params for campaign creation
+    // combine valid params for campaign creation calls
     for (const goal of goals){
       for (const offset of startTimeOffsets){
         const currentTime = await getCurrentTimeInSeconds();
@@ -110,7 +110,7 @@ describe("Launch campaign", function () {
         for (const length of lengths){
           const endTime = startTime + length;
 
-          // switch creator each time
+          // switch campaign creator accounts for each call
           const creator = this.campaignCreators[creatorIndex % this.campaignCreators.length]
 
           const tx = await this.campaignSale.connect(creator).launchCampaign(
@@ -127,8 +127,6 @@ describe("Launch campaign", function () {
           expect(event.goal).to.equal(goal);
           expect(event.startAt).to.equal(startTime);
           expect(event.endAt).to.equal(endTime);
-
-          // check contract storage    
 
           // increase counters for next iteration
           expectedCampaignId++;
