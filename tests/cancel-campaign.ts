@@ -35,7 +35,7 @@ describe("Cancel campaign", function () {
 
   it("should fail for a started campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1); // start campaign in 1 day
+    const startTime = currentTime + daysToSeconds(1);
 
     const campaign = {
       creator: alice,
@@ -51,14 +51,14 @@ describe("Cancel campaign", function () {
       campaign.startTime,
     ]);
 
-    await expect(this.campaignSale.cancelCampaign(id)).to.be.revertedWith(
-      "campaign cannot be canceled after started"
-    );
+    await expect(
+      this.campaignSale.connect(campaign.creator).cancelCampaign(id)
+    ).to.be.revertedWith("campaign cannot be canceled after started");
   });
 
   it("should succeed for a campaign not yet started", async function () {
     const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(2); // start campaign in 2 days
+    const startTime = currentTime + daysToSeconds(2);
 
     const campaign = {
       creator: bob,
@@ -86,9 +86,26 @@ describe("Cancel campaign", function () {
     expect(event.id).to.equal(id);
   });
 
+  it("should fail for invalid caller", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(1);
+
+    const campaign = {
+      creator: bob,
+      goal: 1500,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(14),
+    };
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    await expect(
+      this.campaignSale.connect(charlie).cancelCampaign(id)
+    ).to.be.revertedWith("campaign can only be canceled by owner");
+  });
+
   it("should fail for a finished campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(3); // start campaign in 3 days
+    const startTime = currentTime + daysToSeconds(3);
 
     const campaign = {
       creator: charlie,
@@ -104,8 +121,8 @@ describe("Cancel campaign", function () {
       campaign.endTime + 1,
     ]);
 
-    await expect(this.campaignSale.cancelCampaign(id)).to.be.revertedWith(
-      "campaign cannot be canceled after started"
-    );
+    await expect(
+      this.campaignSale.connect(campaign.creator).cancelCampaign(id)
+    ).to.be.revertedWith("campaign cannot be canceled after started");
   });
 });

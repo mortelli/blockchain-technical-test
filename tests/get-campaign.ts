@@ -72,7 +72,7 @@ describe("Get campaign", function () {
     );
   });
 
-  it("should fail for cancelled campaign", async function () {
+  it("should fail for canceled campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
     const startTime = currentTime + daysToSeconds(1);
     const campaign = {
@@ -83,7 +83,7 @@ describe("Get campaign", function () {
     };
 
     const id = await launchCampaign(this.campaignSale, campaign);
-    await cancelCampaign(this.campaignSale, bob, id);
+    await cancelCampaign(this.campaignSale, campaign.creator, id);
 
     await expect(this.campaignSale.getCampaign(id)).to.be.revertedWith(
       "campaign does not exist"
