@@ -59,9 +59,8 @@ describe("Cancel campaign", function () {
     }
     const id = await launchCampaign(this.campaignSale, campaign);
 
-    // make sure campaign is not yet started
-    currentTime = await getCurrentTimeInSeconds();
-    expect(currentTime).to.be.lessThan(campaign.startTime);
+    // set blockchain time so that campaign is deterministically not yet started
+    await ethers.provider.send('evm_setNextBlockTimestamp', [campaign.startTime - 1]);
 
     // then cancel
     const tx = await this.campaignSale.connect(campaign.creator).cancelCampaign(id);
