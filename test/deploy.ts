@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { deployTestErc20 } from "./utils";
+import { deployTestErc20 } from "./utils/funcs";
 
 describe("Deployment", function () { 
   before(async function(){
