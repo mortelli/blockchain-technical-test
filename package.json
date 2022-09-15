@@ -8,11 +8,15 @@
     "compile": "npx hardhat compile",
     "rebuild": "npm run clean && npm run compile",
     "start": "npx hardhat node",
-    "lint-sol": "solhint 'contracts/**/*.sol'",
+    "solhint": "solhint 'contracts/**/*.sol'",
+    "solhint-fix": "solhint 'contracts/**/*.sol' --fix",
     "lint-ts": "npx eslint .",
     "lint-ts-fix": "npx eslint . --fix",
-    "test": "npx hardhat test test/tests.ts",
-    "coverage": "npx hardhat coverage --testfiles test/tests.ts",
+    "prettier": "npx prettier --check .",
+    "prettier-write": "npx prettier --write .",
+    "format": "npm run solhint-fix && npm run lint-ts-fix && npm run prettier-write",
+    "test": "npx hardhat test tests/tests.ts",
+    "coverage": "npx hardhat coverage --testfiles tests/tests.ts",
     "help": "npx hardhat help"
   },
   "repository": {
@@ -31,7 +35,9 @@
     "@typescript-eslint/eslint-plugin": "^5.37.0",
     "@typescript-eslint/parser": "^5.37.0",
     "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
     "hardhat": "^2.11.1",
+    "prettier": "2.7.1",
     "typescript": "^4.8.3"
   },
   "dependencies": {

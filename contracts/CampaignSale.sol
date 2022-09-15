@@ -68,7 +68,14 @@ contract CampaignSale is ICampaignSale {
     /// @notice Cancel a campaign
     /// @param _id Campaign's id
     function cancelCampaign(uint _id) external {
+        Campaign memory campaign = campaigns[_id];
+        require(campaign.creator != address(0), "campaign does not exist");
+        require(campaign.creator == msg.sender, "campaign can only be canceled by owner");
+        require(block.timestamp < campaign.startAt, "campaign cannot be canceled after started");
 
+        delete campaigns[_id];
+
+        emit CancelCampaign(_id);
     }
 
     /// @notice Contribute to the campaign for the given amount
