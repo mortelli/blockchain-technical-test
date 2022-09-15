@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { Contract } from "ethers";
+import { Contract, Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 export function daysToSeconds(days: number): number{
@@ -35,11 +35,14 @@ export interface CampaignParams {
     endTime: number,  // blocktimestamp
 }
 
-export async function launchCampaign(campaignSale: Contract, params: CampaignParams): Promise<void>{
+export async function launchCampaign(campaignSale: Contract, params: CampaignParams): Promise<number>{
     const tx = await campaignSale.connect(params.creator).launchCampaign(
         params.goal,
         params.startTime,
         params.endTime,
       );
-    await tx.wait();
+    const resp =  await tx.wait();
+    const event = resp.events?.find((e: Event) => e.event == 'LaunchCampaign').args;
+    
+    return event.id
 }

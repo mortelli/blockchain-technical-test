@@ -49,8 +49,8 @@ describe("Get campaign", function () {
         endTime: startTime + daysToSeconds(10),  
     }
 
-    await launchCampaign(this.campaignSale, campaign);
-    await verifyCampaign(this.campaignSale, 1, campaign);
+    const id = await launchCampaign(this.campaignSale, campaign);
+    await verifyCampaign(this.campaignSale, id, campaign);
   });
 
   it("should fail for second ID after creating a campaign", async function () {
