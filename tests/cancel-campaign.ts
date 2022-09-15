@@ -48,7 +48,7 @@ describe("Cancel campaign", function () {
   });
 
   it("should succeed for a campaign not yet started", async function () {
-    let currentTime = await getCurrentTimeInSeconds();
+    const currentTime = await getCurrentTimeInSeconds();
     const startTime = currentTime + daysToSeconds(2); // start campaign in 2 days
     
     const campaign = {
@@ -72,7 +72,7 @@ describe("Cancel campaign", function () {
   });
 
   it("should fail for a finished campaign", async function () {
-    let currentTime = await getCurrentTimeInSeconds();
+    const currentTime = await getCurrentTimeInSeconds();
     const startTime = currentTime + daysToSeconds(3); // start campaign in 3 days
     
     const campaign = {
