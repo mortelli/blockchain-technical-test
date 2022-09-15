@@ -1,9 +1,10 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
+import { Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { deployCampaignSale, getCurrentTimeInSeconds, daysToSeconds, launchCampaign } from "./utils/funcs";
 
-describe.only("Cancel campaign", function () { 
+describe("Cancel campaign", function () { 
   // accounts
   let alice: SignerWithAddress, bob: SignerWithAddress, charlie: SignerWithAddress;
  
@@ -27,7 +28,7 @@ describe.only("Cancel campaign", function () {
 
   it("should fail for a started campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + 2; // start campaign as soon as possible
+    const startTime = currentTime + daysToSeconds(1); // start campaign in 1 day
     
     const campaign = {
         creator: alice,
@@ -36,13 +37,59 @@ describe.only("Cancel campaign", function () {
         endTime: startTime + daysToSeconds(10),  
     }
 
-    // make sure campaign can start without figuring out next block timestamp
-    await ethers.provider.send('evm_setNextBlockTimestamp', [currentTime + 1]);
-
-    await launchCampaign(this.campaignSale, campaign);
+    const id = await launchCampaign(this.campaignSale, campaign);
+    
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send('evm_setNextBlockTimestamp', [campaign.startTime]);
 
     await expect(
-        this.campaignSale.cancelCampaign(1)
-      ).to.be.revertedWith("campaign cannot be canceled after start");
+        this.campaignSale.cancelCampaign(id)
+    ).to.be.revertedWith("campaign cannot be canceled after started");
+  });
+
+  it("should succeed for a campaign not yet started", async function () {
+    let currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(2); // start campaign in 2 days
+    
+    const campaign = {
+        creator: bob,
+        goal: 3000,
+        startTime: startTime,
+        endTime: startTime + daysToSeconds(7),  
+    }
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // make sure campaign is not yet started
+    currentTime = await getCurrentTimeInSeconds();
+    expect(currentTime).to.be.lessThan(campaign.startTime);
+
+    // then cancel
+    const tx = await this.campaignSale.connect(campaign.creator).cancelCampaign(id);
+    const resp = await tx.wait();
+
+    // check event data
+    const event = resp.events?.find((e: Event) => e.event == 'CancelCampaign').args;
+    expect(event.id).to.equal(id);
+  });
+
+  it("should fail for a finished campaign", async function () {
+    let currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(3); // start campaign in 3 days
+    
+    const campaign = {
+        creator: charlie,
+        goal: 100000,
+        startTime: startTime,
+        endTime: startTime + daysToSeconds(30),  
+    }
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is finished
+    await ethers.provider.send('evm_setNextBlockTimestamp', [campaign.endTime + 1]);
+
+    await expect(
+        this.campaignSale.cancelCampaign(id)
+    ).to.be.revertedWith("campaign cannot be canceled after started");
   });
 });
