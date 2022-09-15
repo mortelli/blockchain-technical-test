@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 import "./interfaces/ICampaignSale.sol";
@@ -9,7 +10,16 @@ import "./interfaces/ICampaignSale.sol";
 /// @author @mortelli
 /// @dev This contract was developed as an technical exercise
 contract CampaignSale is ICampaignSale {
+    using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
+
+    /// @notice Object representing a campaign plus how many ERC20 tokens have been pleged by contributors 
+    struct Sale{
+        // The campaign itself
+        Campaign campaign;
+        // Amount pledged to a campaign per address
+        mapping(address => uint256) contributions; 
+    }
 
     /// @notice ERC20 token used to contribute to and fund existing campaigns
     address public erc20Token;
@@ -20,8 +30,8 @@ contract CampaignSale is ICampaignSale {
     /// @notice Maximum amount of time a campaign can last
     uint256 public maximumCampaignLength = 90 days;
 
-    /// @dev Storage for campaigns, running or completed
-    mapping(uint256 => Campaign) private campaigns;
+    /// @dev Storage for campaigns (running or completed) plus their contributions data
+    mapping(uint256 => Sale) private sales;
     
     /// @param _erc20Token Contract address of the ERC20 token used to contribute to and fund existing campaigns
     constructor(address _erc20Token){
@@ -54,7 +64,7 @@ contract CampaignSale is ICampaignSale {
             endAt: _endAt,
             claimed: false // campaigns start unclaimed by default
         });
-        campaigns[campaignId] = campaign;
+        sales[campaignId].campaign = campaign;
 
         emit LaunchCampaign(
             campaignId,
@@ -68,12 +78,12 @@ contract CampaignSale is ICampaignSale {
     /// @notice Cancel a campaign
     /// @param _id Campaign's id
     function cancelCampaign(uint _id) external {
-        Campaign memory campaign = campaigns[_id];
+        Campaign memory campaign = sales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
-        require(campaign.creator == msg.sender, "campaign can only be canceled by owner");
-        require(block.timestamp < campaign.startAt, "campaign cannot be canceled after started");
+        require(campaign.creator == msg.sender, "caller is not campaign creator");
+        require(block.timestamp < campaign.startAt, "campaign already started");
 
-        delete campaigns[_id];
+        delete sales[_id];
 
         emit CancelCampaign(_id);
     }
@@ -82,7 +92,21 @@ contract CampaignSale is ICampaignSale {
     /// @param _id Campaign's id
     /// @param _amount Amount of the contribution    
     function contribute(uint _id, uint _amount) external {
+        Campaign memory campaign = sales[_id].campaign;
+        require(campaign.creator != address(0), "campaign does not exist");
+        require(block.timestamp > campaign.startAt, "campaign not started");
+        require(block.timestamp < campaign.endAt, "campaign already ended");
 
+        IERC20(erc20Token).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
+
+        campaign.pledged += _amount;
+        sales[_id].contributions[msg.sender] += _amount;
+
+        emit Contribute(_id, msg.sender, _amount);
     }
 
     /// @notice Withdraw an amount from your contribution
@@ -107,7 +131,7 @@ contract CampaignSale is ICampaignSale {
     /// @notice Get the campaign info
     /// @param _id Campaign's id
     function getCampaign(uint _id) external view returns (Campaign memory campaign) {
-        campaign = campaigns[_id];
+        campaign = sales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
 
         return campaign;

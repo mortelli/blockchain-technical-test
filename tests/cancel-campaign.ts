@@ -53,7 +53,7 @@ describe("Cancel campaign", function () {
 
     await expect(
       this.campaignSale.connect(campaign.creator).cancelCampaign(id)
-    ).to.be.revertedWith("campaign cannot be canceled after started");
+    ).to.be.revertedWith("campaign already started");
   });
 
   it("should succeed for a campaign not yet started", async function () {
@@ -100,10 +100,10 @@ describe("Cancel campaign", function () {
 
     await expect(
       this.campaignSale.connect(charlie).cancelCampaign(id)
-    ).to.be.revertedWith("campaign can only be canceled by owner");
+    ).to.be.revertedWith("caller is not campaign creator");
   });
 
-  it("should fail for a finished campaign", async function () {
+  it("should fail for an ended campaign", async function () {
     const currentTime = await getCurrentTimeInSeconds();
     const startTime = currentTime + daysToSeconds(3);
 
@@ -116,13 +116,13 @@ describe("Cancel campaign", function () {
 
     const id = await launchCampaign(this.campaignSale, campaign);
 
-    // increase blockchain time so that campaign is finished
+    // increase blockchain time so that campaign is ended
     await ethers.provider.send("evm_setNextBlockTimestamp", [
       campaign.endTime + 1,
     ]);
 
     await expect(
       this.campaignSale.connect(campaign.creator).cancelCampaign(id)
-    ).to.be.revertedWith("campaign cannot be canceled after started");
+    ).to.be.revertedWith("campaign already started");
   });
 });
