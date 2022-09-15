@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployTestErc20 } from "./utils";
 
-describe("Contract deployment", function () { 
+describe("Deployment", function () { 
   before(async function(){
     this.campaignSaleFactory = await ethers.getContractFactory('CampaignSale');
     this.erc20 = await deployTestErc20();
@@ -17,10 +17,15 @@ describe("Contract deployment", function () {
   });
 
   it("should succeed with non-zero address as ERC20 token", async function () {
+    this.campaignSale = await this.campaignSaleFactory.deploy(this.erc20.address);
     await expect(
-      this.campaignSaleFactory.deploy(
-        this.erc20.address
-      )
+      this.campaignSale.deployed()
     ).not.to.be.reverted;
+  });
+
+  it("should correctly set ERC20 token", async function () {
+    const erc20Token = await this.campaignSale.erc20Token();
+
+    expect(erc20Token).to.equal(this.erc20.address);
   });
 });
