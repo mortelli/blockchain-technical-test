@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { deployTestErc20 } from "./utils/funcs";
+import { MAXIMUM_CAMPAIGN_LENGTH } from "./utils/consts";
 
 describe("Deployment", function () { 
   before(async function(){
@@ -27,5 +28,11 @@ describe("Deployment", function () {
     const erc20Token = await this.campaignSale.erc20Token();
 
     expect(erc20Token).to.equal(this.erc20.address);
+  });
+
+  it("should correctly set maximum campaign length", async function () {
+    const maximumCampaignLength = await this.campaignSale.maximumCampaignLength();
+
+    expect(maximumCampaignLength).to.equal(MAXIMUM_CAMPAIGN_LENGTH);
   });
 });

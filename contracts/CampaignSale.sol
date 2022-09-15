@@ -9,7 +9,6 @@ import "./interfaces/ICampaignSale.sol";
 /// @author @mortelli
 /// @dev This contract was developed as an technical exercise
 contract CampaignSale is ICampaignSale {
-
     using Counters for Counters.Counter;
 
     /// @notice ERC20 token used to contribute to and fund existing campaigns
