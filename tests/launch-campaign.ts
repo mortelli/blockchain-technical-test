@@ -118,10 +118,10 @@ describe("Launch campaign", function () {
             startTime,
             endTime,
           );
-          const response = await tx.wait();
+          const resp = await tx.wait();
           
           // check event data
-          const event = response.events?.find((e: Event) => e.event == 'LaunchCampaign').args;
+          const event = resp.events?.find((e: Event) => e.event == 'LaunchCampaign').args;
           expect(event.id).to.equal(expectedCampaignId);
           expect(event.creator).to.equal(creator.address);
           expect(event.goal).to.equal(goal);

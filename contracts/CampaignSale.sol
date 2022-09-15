@@ -70,7 +70,7 @@ contract CampaignSale is ICampaignSale {
     function cancelCampaign(uint _id) external {
         Campaign memory campaign = campaigns[_id];
         require(campaign.creator != address(0), "campaign does not exist");
-        require(block.timestamp < campaign.startAt, "campaign cannot be canceled after start");
+        require(block.timestamp < campaign.startAt, "campaign cannot be canceled after started");
 
         delete campaigns[_id];
 
