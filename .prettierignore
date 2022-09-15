@@ -1,0 +1,11 @@
+# Ignore artifacts:
+build
+coverage
+artifacts
+cache
+
+# Ignore all HTML files:
+*.html
+
+# Ignore coverage output:
+coverage.json
