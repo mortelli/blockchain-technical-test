@@ -1,1 +1,3 @@
-export const MAXIMUM_CAMPAIGN_LENGTH = 90 * 24 * 60 * 60 // 90 days in seconds
+import { daysToSeconds } from "./funcs";
+
+export const MAXIMUM_CAMPAIGN_LENGTH = daysToSeconds(90);
