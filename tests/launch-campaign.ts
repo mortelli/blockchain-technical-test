@@ -3,24 +3,30 @@ import { ethers } from "hardhat";
 import { Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { MAXIMUM_CAMPAIGN_LENGTH } from "./utils/consts";
-import { deployCampaignSale, getCurrentTimeInSeconds, daysToSeconds } from "./utils/funcs";
+import {
+  deployCampaignSale,
+  getCurrentTimeInSeconds,
+  daysToSeconds,
+} from "./utils/funcs";
 
-describe("Launch campaign", function () { 
+describe("Launch campaign", function () {
   // accounts
-  let alice: SignerWithAddress, bob: SignerWithAddress, charlie: SignerWithAddress;
- 
-  before(async function(){
+  let alice: SignerWithAddress,
+    bob: SignerWithAddress,
+    charlie: SignerWithAddress;
+
+  before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
     this.campaignCreators = [alice, bob, charlie];
 
     // deployed contract
     this.campaignSale = await deployCampaignSale();
-    
+
     // arbitrary values expected to succeed as campaign creation parameters to fill in test calls
     this.validCampaign = {
-      goal: 30000, // tokens 
+      goal: 30000, // tokens
       length: daysToSeconds(30),
-    }
+    };
   });
 
   it("should fail for a goal of 0 tokens", async function () {
@@ -31,7 +37,7 @@ describe("Launch campaign", function () {
       this.campaignSale.launchCampaign(
         0,
         startTime,
-        startTime + this.validCampaign.length,
+        startTime + this.validCampaign.length
       )
     ).to.be.revertedWith("goal must be greater than 0");
   });
@@ -44,7 +50,7 @@ describe("Launch campaign", function () {
       this.campaignSale.launchCampaign(
         this.validCampaign.goal,
         startTime,
-        currentTime + this.validCampaign.length,
+        currentTime + this.validCampaign.length
       )
     ).to.be.revertedWith("campaign must start in the future");
   });
@@ -57,11 +63,11 @@ describe("Launch campaign", function () {
       this.campaignSale.launchCampaign(
         this.validCampaign.goal,
         startTime,
-        startTime + this.validCampaign.length,
+        startTime + this.validCampaign.length
       )
     ).to.be.revertedWith("campaign must start in the future");
   });
-  
+
   it("should fail for a negative campaign length", async function () {
     const currentTime = await getCurrentTimeInSeconds();
     const startTime = currentTime + daysToSeconds(20); // 20 days into the future
@@ -70,7 +76,7 @@ describe("Launch campaign", function () {
       this.campaignSale.launchCampaign(
         this.validCampaign.goal,
         startTime,
-        startTime - daysToSeconds(1), // 1 day before start time
+        startTime - daysToSeconds(1) // 1 day before start time
       )
     ).to.be.revertedWith("campaign must end after it starts");
   });
@@ -84,44 +90,45 @@ describe("Launch campaign", function () {
       this.campaignSale.launchCampaign(
         this.validCampaign.goal,
         startTime,
-        endTime,
+        endTime
       )
     ).to.be.revertedWith("campaign length exceeds maximum");
   });
 
   it("should succeed for valid campaign parameters", async function () {
     // tokens to reach as campaign goals
-    const goals = [1, 100, 1000000]; 
+    const goals = [1, 100, 1000000];
     // days into the future for campaign start times, in seconds
-    const startTimeOffsets = [1, 10, 100].map(x => daysToSeconds(x)); 
+    const startTimeOffsets = [1, 10, 100].map((x) => daysToSeconds(x));
     // campaign lengths, in seconds
-    const lengths = [1, 30, 90].map(x => daysToSeconds(x));
+    const lengths = [1, 30, 90].map((x) => daysToSeconds(x));
     // first created campaign ID
     let expectedCampaignId = 1;
     // used to switch campaign creators
     let creatorIndex = 1;
 
     // combine valid params for campaign creation calls
-    for (const goal of goals){
-      for (const offset of startTimeOffsets){
+    for (const goal of goals) {
+      for (const offset of startTimeOffsets) {
         const currentTime = await getCurrentTimeInSeconds();
         const startTime = currentTime + offset;
 
-        for (const length of lengths){
+        for (const length of lengths) {
           const endTime = startTime + length;
 
           // switch campaign creator accounts for each call
-          const creator = this.campaignCreators[creatorIndex % this.campaignCreators.length]
+          const creator =
+            this.campaignCreators[creatorIndex % this.campaignCreators.length];
 
-          const tx = await this.campaignSale.connect(creator).launchCampaign(
-            goal,
-            startTime,
-            endTime,
-          );
+          const tx = await this.campaignSale
+            .connect(creator)
+            .launchCampaign(goal, startTime, endTime);
           const resp = await tx.wait();
-          
+
           // check event data
-          const event = resp.events?.find((e: Event) => e.event == 'LaunchCampaign').args;
+          const event = resp.events?.find(
+            (e: Event) => e.event == "LaunchCampaign"
+          ).args;
           expect(event.id).to.equal(expectedCampaignId);
           expect(event.creator).to.equal(creator.address);
           expect(event.goal).to.equal(goal);

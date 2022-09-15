@@ -11,6 +11,8 @@
     "lint-sol": "solhint 'contracts/**/*.sol'",
     "lint-ts": "npx eslint .",
     "lint-ts-fix": "npx eslint . --fix",
+    "prettier": "npx prettier --check .",
+    "prettier-write": "npx prettier --write .",
     "test": "npx hardhat test tests/tests.ts",
     "coverage": "npx hardhat coverage --testfiles tests/tests.ts",
     "help": "npx hardhat help"
