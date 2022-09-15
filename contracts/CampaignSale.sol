@@ -38,6 +38,7 @@ contract CampaignSale is ICampaignSale {
         uint32 _startAt,
         uint32 _endAt
     ) external {
+        require(_goal > 0, "goal must be greater than 0");
         require(block.timestamp < _startAt, "campaign must start in the future");
         require(_startAt < _endAt, "campaign must end after it starts");
         // if needed, user can query maximum length through the public field
