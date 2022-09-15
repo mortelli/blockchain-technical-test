@@ -11,8 +11,8 @@
     "lint-sol": "solhint 'contracts/**/*.sol'",
     "lint-ts": "npx eslint .",
     "lint-ts-fix": "npx eslint . --fix",
-    "test": "npx hardhat test",
-    "coverage": "npx hardhat coverage",
+    "test": "npx hardhat test test/tests.ts",
+    "coverage": "npx hardhat coverage --testfiles test/tests.ts",
     "help": "npx hardhat help"
   },
   "repository": {
@@ -33,5 +33,8 @@
     "eslint": "^8.23.1",
     "hardhat": "^2.11.1",
     "typescript": "^4.8.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3"
   }
 }
