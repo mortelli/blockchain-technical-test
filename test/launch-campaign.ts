@@ -1,4 +1,5 @@
 import { expect } from "chai";
+import { MAXIMUM_CAMPAIGN_LENGTH } from "./utils/consts";
 import { deployCampaignSale, getCurrentTimeInSeconds, daysToSeconds } from "./utils/funcs";
 
 describe("Launch campaign", function () { 
@@ -50,5 +51,32 @@ describe("Launch campaign", function () {
         startTime + this.validCampaign.length,
       )
     ).to.be.revertedWith("campaign must start in the future");
+  });
+  
+  it("should fail for a negative campaign length", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(20); // 20 days into the future
+
+    await expect(
+      this.campaignSale.launchCampaign(
+        this.validCampaign.goal,
+        startTime,
+        startTime - daysToSeconds(1), // 1 day before start time
+      )
+    ).to.be.revertedWith("campaign must end after it starts");
+  });
+
+  it("should fail for a campaign that lasts more than allowed", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(5); // 5 days into the future
+    const endTime = startTime + MAXIMUM_CAMPAIGN_LENGTH + 1; // 1 second past maximum length
+
+    await expect(
+      this.campaignSale.launchCampaign(
+        this.validCampaign.goal,
+        startTime,
+        endTime,
+      )
+    ).to.be.revertedWith("campaign length exceeds maximum");
   });
 });
