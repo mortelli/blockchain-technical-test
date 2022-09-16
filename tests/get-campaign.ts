@@ -6,24 +6,33 @@ import {
   deployCampaignSale,
   getCurrentTimeInSeconds,
   daysToSeconds,
-  CampaignParams,
   launchCampaign,
   cancelCampaign,
+  contribute,
 } from "./utils/funcs";
+
+interface CampaignData {
+  creator: SignerWithAddress;
+  goal: number; // goal token quantity
+  pledged: number; // pledged token quantity
+  startTime: number; // block timestamp
+  endTime: number; // blocktimestamp
+  claimed: boolean; // flag for having reached goal and claimed tokens
+}
 
 async function verifyCampaign(
   campaignSale: Contract,
   id: number,
-  params: CampaignParams
+  expectedCampaign: CampaignData
 ) {
   const campaign = await campaignSale.getCampaign(id);
 
-  expect(campaign.creator).to.equal(params.creator.address);
-  expect(campaign.goal).to.equal(params.goal);
-  expect(campaign.pledged).to.equal(0);
-  expect(campaign.startAt).to.equal(params.startTime);
-  expect(campaign.endAt).to.equal(params.endTime);
-  expect(campaign.claimed).to.be.false;
+  expect(campaign.creator).to.equal(expectedCampaign.creator.address);
+  expect(campaign.goal).to.equal(expectedCampaign.goal);
+  expect(campaign.pledged).to.equal(expectedCampaign.pledged);
+  expect(campaign.startAt).to.equal(expectedCampaign.startTime);
+  expect(campaign.endAt).to.equal(expectedCampaign.endTime);
+  expect(campaign.claimed).to.equal(expectedCampaign.claimed);
 }
 
 describe("Get campaign", function () {
@@ -34,10 +43,13 @@ describe("Get campaign", function () {
 
   before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
-    this.campaignCreators = [alice, bob, charlie];
 
     // deployed contract
     this.campaignSale = await deployCampaignSale();
+    const erc20Token = await this.campaignSale.erc20Token();
+
+    const erc20Factory = await ethers.getContractFactory("TestERC20");
+    this.erc20 = erc20Factory.attach(erc20Token);
   });
 
   it("should fail for id 0", async function () {
@@ -63,7 +75,11 @@ describe("Get campaign", function () {
     };
 
     await launchCampaign(this.campaignSale, campaign);
-    await verifyCampaign(this.campaignSale, 1, campaign);
+    await verifyCampaign(this.campaignSale, 1, {
+      ...campaign,
+      pledged: 0,
+      claimed: false,
+    });
   });
 
   it("should fail for second ID after creating a campaign", async function () {
@@ -88,6 +104,39 @@ describe("Get campaign", function () {
     await expect(this.campaignSale.getCampaign(id)).to.be.revertedWith(
       "campaign does not exist"
     );
+  });
+
+  it("should suceed for campaigns with contributions", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(5);
+    const campaign = {
+      creator: charlie,
+      goal: 30000,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(21),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    // make contribution
+    const contributor = alice;
+    const amount = 7000;
+    await this.erc20.mint(contributor.address, amount);
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, amount);
+    await contribute(this.campaignSale, contributor, id, amount);
+
+    await verifyCampaign(this.campaignSale, id, {
+      ...campaign,
+      pledged: amount,
+      claimed: false,
+    });
   });
 
   it("should still fail for id 0", async function () {
