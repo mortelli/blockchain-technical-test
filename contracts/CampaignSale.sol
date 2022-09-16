@@ -118,12 +118,11 @@ contract CampaignSale is ICampaignSale {
         require(campaign.creator != address(0), "campaign does not exist");
         require(block.timestamp >= campaign.startAt, "campaign not yet started");
         require(block.timestamp < campaign.endAt, "campaign already ended");
-        
+        require(_amount > 0, "amount must be greater than 0");
         uint256 contributorBalance = campaignSales[_id].contributions[msg.sender];
         require(_amount <= contributorBalance, "not enough balance to withdraw");
 
-        IERC20(erc20Token).safeTransferFrom(
-            address(this),
+        IERC20(erc20Token).safeTransfer(
             msg.sender,
             _amount
         );
