@@ -28,13 +28,11 @@ async function verifyCampaign(
 
 describe("Get campaign", function () {
   // accounts
-  let alice: SignerWithAddress,
-    bob: SignerWithAddress,
-    charlie: SignerWithAddress;
+  let alice: SignerWithAddress, bob: SignerWithAddress;
 
   before(async function () {
-    [alice, bob, charlie] = await ethers.getSigners();
-    this.campaignCreators = [alice, bob, charlie];
+    [alice, bob] = await ethers.getSigners();
+    this.campaignCreators = [alice, bob];
 
     // deployed contract
     this.campaignSale = await deployCampaignSale();
