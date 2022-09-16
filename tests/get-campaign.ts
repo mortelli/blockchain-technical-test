@@ -9,6 +9,7 @@ import {
   launchCampaign,
   cancelCampaign,
   contribute,
+  withdraw,
 } from "./utils/funcs";
 
 interface CampaignData {
@@ -120,6 +121,43 @@ describe("Get campaign", function () {
     await verifyGetCampaign(this.campaignSale, id, {
       ...campaign,
       pledged: amount,
+      claimed: false,
+    });
+  });
+
+  it("should suceed for campaigns with withdrawals", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(2);
+    const campaign = {
+      creator: charlie,
+      goal: 10000,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(9),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    // make contribution
+    const contributor = alice;
+    const contributeAmount = 7000;
+    await this.erc20.mint(contributor.address, contributeAmount);
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
+
+    // make withdrawal
+    const withdrawAmount = 5000;
+    await withdraw(this.campaignSale, contributor, id, withdrawAmount);
+
+    await verifyGetCampaign(this.campaignSale, id, {
+      ...campaign,
+      pledged: contributeAmount - withdrawAmount,
       claimed: false,
     });
   });
