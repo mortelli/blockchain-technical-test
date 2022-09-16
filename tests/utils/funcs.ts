@@ -70,3 +70,13 @@ export async function contribute(
   const tx = await campaignSale.connect(contributor).contribute(id, amount);
   await tx.wait();
 }
+
+export async function withdraw(
+  campaignSale: Contract,
+  contributor: SignerWithAddress,
+  id: number,
+  amount: number
+): Promise<void> {
+  const tx = await campaignSale.connect(contributor).withdraw(id, amount);
+  await tx.wait();
+}

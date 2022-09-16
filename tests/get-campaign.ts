@@ -9,6 +9,7 @@ import {
   launchCampaign,
   cancelCampaign,
   contribute,
+  withdraw,
 } from "./utils/funcs";
 
 interface CampaignData {
@@ -18,21 +19,6 @@ interface CampaignData {
   startTime: number; // block timestamp
   endTime: number; // blocktimestamp
   claimed: boolean; // flag for having reached goal and claimed tokens
-}
-
-async function verifyCampaign(
-  campaignSale: Contract,
-  id: number,
-  expectedCampaign: CampaignData
-) {
-  const campaign = await campaignSale.getCampaign(id);
-
-  expect(campaign.creator).to.equal(expectedCampaign.creator.address);
-  expect(campaign.goal).to.equal(expectedCampaign.goal);
-  expect(campaign.pledged).to.equal(expectedCampaign.pledged);
-  expect(campaign.startAt).to.equal(expectedCampaign.startTime);
-  expect(campaign.endAt).to.equal(expectedCampaign.endTime);
-  expect(campaign.claimed).to.equal(expectedCampaign.claimed);
 }
 
 describe("Get campaign", function () {
@@ -75,7 +61,7 @@ describe("Get campaign", function () {
     };
 
     await launchCampaign(this.campaignSale, campaign);
-    await verifyCampaign(this.campaignSale, 1, {
+    await verifyGetCampaign(this.campaignSale, 1, {
       ...campaign,
       pledged: 0,
       claimed: false,
@@ -132,9 +118,46 @@ describe("Get campaign", function () {
       .approve(this.campaignSale.address, amount);
     await contribute(this.campaignSale, contributor, id, amount);
 
-    await verifyCampaign(this.campaignSale, id, {
+    await verifyGetCampaign(this.campaignSale, id, {
       ...campaign,
       pledged: amount,
+      claimed: false,
+    });
+  });
+
+  it("should suceed for campaigns with withdrawals", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(2);
+    const campaign = {
+      creator: charlie,
+      goal: 10000,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(9),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    // make contribution
+    const contributor = alice;
+    const contributeAmount = 7000;
+    await this.erc20.mint(contributor.address, contributeAmount);
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
+
+    // make withdrawal
+    const withdrawAmount = 5000;
+    await withdraw(this.campaignSale, contributor, id, withdrawAmount);
+
+    await verifyGetCampaign(this.campaignSale, id, {
+      ...campaign,
+      pledged: contributeAmount - withdrawAmount,
       claimed: false,
     });
   });
@@ -145,3 +168,18 @@ describe("Get campaign", function () {
     );
   });
 });
+
+async function verifyGetCampaign(
+  campaignSale: Contract,
+  id: number,
+  expectedCampaign: CampaignData
+) {
+  const campaign = await campaignSale.getCampaign(id);
+
+  expect(campaign.creator).to.equal(expectedCampaign.creator.address);
+  expect(campaign.goal).to.equal(expectedCampaign.goal);
+  expect(campaign.pledged).to.equal(expectedCampaign.pledged);
+  expect(campaign.startAt).to.equal(expectedCampaign.startTime);
+  expect(campaign.endAt).to.equal(expectedCampaign.endTime);
+  expect(campaign.claimed).to.equal(expectedCampaign.claimed);
+}

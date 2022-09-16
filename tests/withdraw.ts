@@ -7,18 +7,18 @@ import {
   getCurrentTimeInSeconds,
   daysToSeconds,
   launchCampaign,
+  contribute,
 } from "./utils/funcs";
 
-describe("Contribute", function () {
+describe("Withdraw", function () {
   // accounts
   let alice: SignerWithAddress,
     bob: SignerWithAddress,
-    charlie: SignerWithAddress,
-    dave: SignerWithAddress;
+    charlie: SignerWithAddress;
 
   before(async function () {
-    [alice, bob, charlie, dave] = await ethers.getSigners();
-    this.campaignContributors = [alice, bob, charlie, dave];
+    [alice, bob, charlie] = await ethers.getSigners();
+    this.campaignContributors = [alice, bob, charlie];
 
     // deployed contract
     this.campaignSale = await deployCampaignSale();
@@ -37,11 +37,11 @@ describe("Contribute", function () {
   it("should fail for invalid campaigns", async function () {
     const amount = 1000;
 
-    await expect(this.campaignSale.contribute(0, amount)).to.be.revertedWith(
+    await expect(this.campaignSale.withdraw(0, amount)).to.be.revertedWith(
       "campaign does not exist"
     );
 
-    await expect(this.campaignSale.contribute(1, amount)).to.be.revertedWith(
+    await expect(this.campaignSale.withdraw(1, amount)).to.be.revertedWith(
       "campaign does not exist"
     );
   });
@@ -66,7 +66,7 @@ describe("Contribute", function () {
     const contributor = bob;
 
     await expect(
-      this.campaignSale.connect(contributor).contribute(id, 1000)
+      this.campaignSale.connect(contributor).withdraw(id, 1000)
     ).to.be.revertedWith("campaign not yet started");
   });
 
@@ -91,7 +91,7 @@ describe("Contribute", function () {
     const contributor = charlie;
 
     await expect(
-      this.campaignSale.connect(contributor).contribute(id, 2000)
+      this.campaignSale.connect(contributor).withdraw(id, 2000)
     ).to.be.revertedWith("campaign already ended");
   });
 
@@ -116,31 +116,105 @@ describe("Contribute", function () {
     const contributor = alice;
 
     await expect(
-      this.campaignSale.connect(contributor).contribute(id, 0)
+      this.campaignSale.connect(contributor).withdraw(id, 0)
     ).to.be.revertedWith("amount must be greater than 0");
   });
 
-  it("should succeed for valid conditions", async function () {
-    // create campaigns to contribute to
+  it("should fail for insufficient balance", async function () {
+    const now = await getCurrentTimeInSeconds();
+    const campaign = {
+      creator: alice,
+      goal: 10000,
+      startTime: now + daysToSeconds(3),
+      endTime: now + daysToSeconds(33),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    const contributor = bob;
+
+    // withdraw before contributing
+    await expect(
+      this.campaignSale.connect(contributor).withdraw(id, 100)
+    ).to.be.revertedWith("not enough balance to withdraw");
+
+    // contribute
+    const contributeAmount = 500;
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
+
+    // then attempt to withdraw greater amount
+    const withdrawAmount = 1000;
+    expect(withdrawAmount).to.be.greaterThan(contributeAmount);
+    await expect(
+      this.campaignSale.connect(contributor).withdraw(id, withdrawAmount)
+    ).to.be.revertedWith("not enough balance to withdraw");
+  });
+
+  it("should succeed for a single valid call", async function () {
+    const now = await getCurrentTimeInSeconds();
+    const campaign = {
+      creator: bob,
+      goal: 10000,
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(8),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    const contributor = bob;
+
+    // contribute
+    const amount = 500;
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, amount);
+
+    await contribute(this.campaignSale, contributor, id, amount);
+
+    await verifyWithdraw(
+      this.campaignSale,
+      this.erc20,
+      contributor,
+      amount,
+      id
+    );
+  });
+
+  it("should succeed for multiple valid calls", async function () {
+    // create campaigns to withdraw from
     const now = await getCurrentTimeInSeconds();
     const campaigns = [
       {
-        creator: alice,
+        creator: charlie,
         goal: 100000,
         startTime: now + daysToSeconds(1),
-        endTime: now + daysToSeconds(8),
+        endTime: now + daysToSeconds(4),
       },
       {
         creator: bob,
-        goal: 200000,
+        goal: 50000,
         startTime: now + daysToSeconds(2),
-        endTime: now + daysToSeconds(16),
+        endTime: now + daysToSeconds(5),
       },
       {
-        creator: charlie,
-        goal: 300000,
+        creator: alice,
+        goal: 25000,
         startTime: now + daysToSeconds(3),
-        endTime: now + daysToSeconds(24),
+        endTime: now + daysToSeconds(6),
       },
     ];
 
@@ -159,36 +233,49 @@ describe("Contribute", function () {
     // increase blockchain time so that all campaigns are started
     await ethers.provider.send("evm_setNextBlockTimestamp", [maxStartTime]);
 
-    // used to switch campaigns and contributors
-    let contributorIndex = 1;
-    let campaignIndex = 1;
+    const contributions = [
+      { contributor: alice, campaignId: campaignIds[0], amount: 1000 },
+      { contributor: charlie, campaignId: campaignIds[1], amount: 500 },
+      { contributor: bob, campaignId: campaignIds[2], amount: 2000 },
+    ];
 
-    const amountOfContributions = 7;
-    for (let i = 0; i < amountOfContributions; i++) {
-      // switch campaigns, contributors and amounts for each call
-      const campaignId = campaignIds[campaignIndex % campaignIds.length];
-      const contributor =
-        this.campaignContributors[
-          contributorIndex % this.campaignContributors.length
-        ];
-      const amount = 1000 * (i + 1);
+    // make contributions
+    for (const contribution of contributions) {
+      const contributor = contribution.contributor;
+      const amount = contribution.amount;
 
-      await verifyContribute(
+      await this.erc20
+        .connect(contributor)
+        .approve(this.campaignSale.address, amount);
+
+      await contribute(
         this.campaignSale,
-        this.erc20,
         contributor,
-        amount,
-        campaignId
+        contribution.campaignId,
+        amount
       );
+    }
 
-      // increase counters for next iteration
-      contributorIndex++;
-      campaignIndex++;
+    const amountOfWithdrawals = 4;
+    for (let i = 0; i < amountOfWithdrawals; i++) {
+      for (const contribution of contributions) {
+        const contributor = contribution.contributor;
+        const amount = contribution.amount / amountOfWithdrawals;
+        const campaignId = contribution.campaignId;
+
+        await verifyWithdraw(
+          this.campaignSale,
+          this.erc20,
+          contributor,
+          amount,
+          campaignId
+        );
+      }
     }
   });
 });
 
-async function verifyContribute(
+async function verifyWithdraw(
   campaignSale: Contract,
   erc20: Contract,
   contributor: SignerWithAddress,
@@ -203,11 +290,11 @@ async function verifyContribute(
 
   const tx = await campaignSale
     .connect(contributor)
-    .contribute(campaignId, amount);
+    .withdraw(campaignId, amount);
   const resp = await tx.wait();
 
   // check event data
-  const event = resp.events?.find((e: Event) => e.event == "Contribute").args;
+  const event = resp.events?.find((e: Event) => e.event == "Withdraw").args;
   expect(event.id).to.equal(campaignId);
   expect(event.caller).to.equal(contributor.address);
   expect(event.amount).to.equal(amount);
@@ -215,11 +302,11 @@ async function verifyContribute(
   // check balances
   const finalContributorBalance = await erc20.balanceOf(contributor.address);
   const contributorBalanceDifference =
-    initialContributorBalance - finalContributorBalance;
+    finalContributorBalance - initialContributorBalance;
   expect(contributorBalanceDifference).to.equal(amount);
 
   const finalContractBalance = await erc20.balanceOf(campaignSale.address);
   const contractBalanceDifference =
-    finalContractBalance - initialContractBalance;
+    initialContractBalance - finalContractBalance;
   expect(contractBalanceDifference).to.equal(amount);
 }

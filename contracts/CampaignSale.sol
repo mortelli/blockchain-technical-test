@@ -114,7 +114,23 @@ contract CampaignSale is ICampaignSale {
     /// @param _id Campaign's id
     /// @param _amount Amount of the contribution to withdraw
     function withdraw(uint _id, uint _amount) external {
+        Campaign storage campaign = campaignSales[_id].campaign;
+        require(campaign.creator != address(0), "campaign does not exist");
+        require(block.timestamp >= campaign.startAt, "campaign not yet started");
+        require(block.timestamp < campaign.endAt, "campaign already ended");
+        require(_amount > 0, "amount must be greater than 0");
+        uint256 contributorBalance = campaignSales[_id].contributions[msg.sender];
+        require(_amount <= contributorBalance, "not enough balance to withdraw");
 
+        IERC20(erc20Token).safeTransfer(
+            msg.sender,
+            _amount
+        );
+
+        campaign.pledged -= _amount;
+        campaignSales[_id].contributions[msg.sender] -= _amount;
+
+        emit Withdraw(_id, msg.sender, _amount);
     }
 
     /// @notice Claim all the tokens from the campaign
