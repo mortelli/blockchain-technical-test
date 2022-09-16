@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Event } from "ethers";
+import { Contract, Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   deployCampaignSale,
@@ -164,11 +164,6 @@ describe("Contribute", function () {
     let campaignIndex = 1;
 
     const amountOfContributions = 7;
-    let amountContributed = 0;
-
-    let contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
-    expect(contractBalance).to.equal(0);
-
     for (let i = 0; i < amountOfContributions; i++) {
       // switch campaigns, contributors and amounts for each call
       const campaignId = campaignIds[campaignIndex % campaignIds.length];
@@ -178,55 +173,53 @@ describe("Contribute", function () {
         ];
       const amount = 1000 * (i + 1);
 
-      const initialContributorBalance = await this.erc20.balanceOf(
-        contributor.address
+      await verifyContribute(
+        this.campaignSale,
+        this.erc20,
+        contributor,
+        amount,
+        campaignId
       );
-      const initialContractBalance = await this.erc20.balanceOf(
-        this.campaignSale.address
-      );
-
-      await expect(
-        this.erc20
-          .connect(contributor)
-          .approve(this.campaignSale.address, amount)
-      ).not.to.be.reverted;
-
-      const tx = await this.campaignSale
-        .connect(contributor)
-        .contribute(campaignId, amount);
-      const resp = await tx.wait();
-
-      // check event data
-      const event = resp.events?.find(
-        (e: Event) => e.event == "Contribute"
-      ).args;
-      expect(event.id).to.equal(campaignId);
-      expect(event.caller).to.equal(contributor.address);
-      expect(event.amount).to.equal(amount);
-
-      // check balances
-      const finalContributorBalance = await this.erc20.balanceOf(
-        contributor.address
-      );
-      const contributorBalanceDifference =
-        initialContributorBalance - finalContributorBalance;
-      expect(contributorBalanceDifference).to.equal(amount);
-
-      const finalContractBalance = await this.erc20.balanceOf(
-        this.campaignSale.address
-      );
-      const contractBalanceDifference =
-        finalContractBalance - initialContractBalance;
-      expect(contractBalanceDifference).to.equal(amount);
-
-      amountContributed += amount;
 
       // increase counters for next iteration
       contributorIndex++;
       campaignIndex++;
     }
-
-    contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
-    expect(contractBalance).to.equal(amountContributed);
   });
 });
+
+async function verifyContribute(
+  campaignSale: Contract,
+  erc20: Contract,
+  contributor: SignerWithAddress,
+  amount: number,
+  campaignId: number
+) {
+  const initialContributorBalance = await erc20.balanceOf(contributor.address);
+  const initialContractBalance = await erc20.balanceOf(campaignSale.address);
+
+  await expect(erc20.connect(contributor).approve(campaignSale.address, amount))
+    .not.to.be.reverted;
+
+  const tx = await campaignSale
+    .connect(contributor)
+    .contribute(campaignId, amount);
+  const resp = await tx.wait();
+
+  // check event data
+  const event = resp.events?.find((e: Event) => e.event == "Contribute").args;
+  expect(event.id).to.equal(campaignId);
+  expect(event.caller).to.equal(contributor.address);
+  expect(event.amount).to.equal(amount);
+
+  // check balances
+  const finalContributorBalance = await erc20.balanceOf(contributor.address);
+  const contributorBalanceDifference =
+    initialContributorBalance - finalContributorBalance;
+  expect(contributorBalanceDifference).to.equal(amount);
+
+  const finalContractBalance = await erc20.balanceOf(campaignSale.address);
+  const contractBalanceDifference =
+    finalContractBalance - initialContractBalance;
+  expect(contractBalanceDifference).to.equal(amount);
+}
