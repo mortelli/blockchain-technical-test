@@ -14,7 +14,7 @@ export async function getCurrentTimeInSeconds(): Promise<number> {
 }
 
 export async function deployTestErc20(): Promise<Contract> {
-  const erc20Factory = await ethers.getContractFactory("ERC20");
+  const erc20Factory = await ethers.getContractFactory("TestERC20");
   const erc20 = await erc20Factory.deploy("Test Token", "TKN");
   await erc20.deployed();
 
@@ -58,5 +58,15 @@ export async function cancelCampaign(
   id: number
 ): Promise<void> {
   const tx = await campaignSale.connect(creator).cancelCampaign(id);
+  await tx.wait();
+}
+
+export async function contribute(
+  campaignSale: Contract,
+  contributor: SignerWithAddress,
+  id: number,
+  amount: number
+): Promise<void> {
+  const tx = await campaignSale.connect(contributor).contribute(id, amount);
   await tx.wait();
 }
