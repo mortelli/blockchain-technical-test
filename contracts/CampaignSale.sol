@@ -24,14 +24,14 @@ contract CampaignSale is ICampaignSale {
     /// @notice ERC20 token used to contribute to and fund existing campaigns
     address public erc20Token;
 
-    /// @dev Counter used for Campaign IDs
-    Counters.Counter private idCounter;
-
     /// @notice Maximum amount of time a campaign can last
     uint256 public maximumCampaignLength = 90 days;
 
-    /// @dev Storage for campaigns (running or completed) plus their contributions data
-    mapping(uint256 => Sale) private sales;
+    /// @dev Counter used for campaign IDs
+    Counters.Counter private idCounter;
+
+    /// @dev Storage for campaigns (running or completed) plus their contributions data; keys are campaign IDs
+    mapping(uint256 => Sale) private campaignSales;
     
     /// @param _erc20Token Contract address of the ERC20 token used to contribute to and fund existing campaigns
     constructor(address _erc20Token){
@@ -64,7 +64,7 @@ contract CampaignSale is ICampaignSale {
             endAt: _endAt,
             claimed: false // campaigns start unclaimed by default
         });
-        sales[campaignId].campaign = campaign;
+        campaignSales[campaignId].campaign = campaign;
 
         emit LaunchCampaign(
             campaignId,
@@ -78,12 +78,12 @@ contract CampaignSale is ICampaignSale {
     /// @notice Cancel a campaign
     /// @param _id Campaign's id
     function cancelCampaign(uint _id) external {
-        Campaign memory campaign = sales[_id].campaign;
+        Campaign memory campaign = campaignSales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
         require(campaign.creator == msg.sender, "caller is not campaign creator");
         require(block.timestamp < campaign.startAt, "campaign already started");
 
-        delete sales[_id];
+        delete campaignSales[_id];
 
         emit CancelCampaign(_id);
     }
@@ -92,10 +92,11 @@ contract CampaignSale is ICampaignSale {
     /// @param _id Campaign's id
     /// @param _amount Amount of the contribution    
     function contribute(uint _id, uint _amount) external {
-        Campaign memory campaign = sales[_id].campaign;
+        Campaign memory campaign = campaignSales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
-        require(block.timestamp > campaign.startAt, "campaign not started");
+        require(block.timestamp >= campaign.startAt, "campaign not yet started");
         require(block.timestamp < campaign.endAt, "campaign already ended");
+        require(_amount > 0, "amount must be greater than 0");
 
         IERC20(erc20Token).safeTransferFrom(
             msg.sender,
@@ -104,7 +105,7 @@ contract CampaignSale is ICampaignSale {
         );
 
         campaign.pledged += _amount;
-        sales[_id].contributions[msg.sender] += _amount;
+        campaignSales[_id].contributions[msg.sender] += _amount;
 
         emit Contribute(_id, msg.sender, _amount);
     }
@@ -131,7 +132,7 @@ contract CampaignSale is ICampaignSale {
     /// @notice Get the campaign info
     /// @param _id Campaign's id
     function getCampaign(uint _id) external view returns (Campaign memory campaign) {
-        campaign = sales[_id].campaign;
+        campaign = campaignSales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
 
         return campaign;
