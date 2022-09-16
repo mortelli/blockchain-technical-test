@@ -155,7 +155,12 @@ describe("Contribute", function () {
     // used to switch campaigns and contributors
     let contributorIndex = 1;
     let campaignIndex = 1;
+
     const amountOfContributions = 7;
+    let amountContributed = 0;
+
+    let contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
+    expect(contractBalance).to.equal(0);
 
     for (let i = 0; i < amountOfContributions; i++) {
       // switch campaigns, contributors and amounts for each call
@@ -165,6 +170,13 @@ describe("Contribute", function () {
           contributorIndex % this.campaignContributors.length
         ];
       const amount = 1000 * (i + 1);
+
+      const initialContributorBalance = await this.erc20.balanceOf(
+        contributor.address
+      );
+      const initialContractBalance = await this.erc20.balanceOf(
+        this.campaignSale.address
+      );
 
       await expect(
         this.erc20
@@ -185,9 +197,29 @@ describe("Contribute", function () {
       expect(event.caller).to.equal(contributor.address);
       expect(event.amount).to.equal(amount);
 
+      // check balances
+      const finalContributorBalance = await this.erc20.balanceOf(
+        contributor.address
+      );
+      const contributorBalanceDifference =
+        initialContributorBalance - finalContributorBalance;
+      expect(contributorBalanceDifference).to.equal(amount);
+
+      const finalContractBalance = await this.erc20.balanceOf(
+        this.campaignSale.address
+      );
+      const contractBalanceDifference =
+        finalContractBalance - initialContractBalance;
+      expect(contractBalanceDifference).to.equal(amount);
+
+      amountContributed += amount;
+
       // increase counters for next iteration
       contributorIndex++;
       campaignIndex++;
     }
+
+    contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
+    expect(contractBalance).to.equal(amountContributed);
   });
 });
