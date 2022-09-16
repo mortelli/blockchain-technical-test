@@ -122,18 +122,25 @@ describe("Contribute", function () {
 
   it("should succeed for valid conditions", async function () {
     // create campaigns to contribute to
+    const now = await getCurrentTimeInSeconds();
     const campaigns = [
       {
         creator: alice,
         goal: 100000,
-        startTime: (await getCurrentTimeInSeconds()) + daysToSeconds(1),
-        endTime: (await getCurrentTimeInSeconds()) + daysToSeconds(7),
+        startTime: now + daysToSeconds(1),
+        endTime: now + daysToSeconds(8),
       },
       {
         creator: bob,
         goal: 200000,
-        startTime: (await getCurrentTimeInSeconds()) + daysToSeconds(1),
-        endTime: (await getCurrentTimeInSeconds()) + daysToSeconds(14),
+        startTime: now + daysToSeconds(2),
+        endTime: now + daysToSeconds(16),
+      },
+      {
+        creator: charlie,
+        goal: 300000,
+        startTime: now + daysToSeconds(3),
+        endTime: now + daysToSeconds(24),
       },
     ];
 
