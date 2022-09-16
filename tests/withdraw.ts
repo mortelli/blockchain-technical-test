@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Event } from "ethers";
+import { Contract, Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   deployCampaignSale,
@@ -120,7 +120,81 @@ describe("Withdraw", function () {
     ).to.be.revertedWith("amount must be greater than 0");
   });
 
-  it("should succeed for multiple calls", async function () {
+  it("should fail for insufficient balance", async function () {
+    const now = await getCurrentTimeInSeconds();
+    const campaign = {
+      creator: alice,
+      goal: 10000,
+      startTime: now + daysToSeconds(3),
+      endTime: now + daysToSeconds(33),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    const contributor = bob;
+
+    // withdraw before contributing
+    await expect(
+      this.campaignSale.connect(contributor).withdraw(id, 100)
+    ).to.be.revertedWith("not enough balance to withdraw");
+
+    // contribute
+    const contributeAmount = 500;
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
+
+    // then attempt to withdraw greater amount
+    const withdrawAmount = 1000;
+    expect(withdrawAmount).to.be.greaterThan(contributeAmount);
+    await expect(
+      this.campaignSale.connect(contributor).withdraw(id, withdrawAmount)
+    ).to.be.revertedWith("not enough balance to withdraw");
+  });
+
+  it("should succeed for a single valid call", async function () {
+    const now = await getCurrentTimeInSeconds();
+    const campaign = {
+      creator: bob,
+      goal: 10000,
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(8),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    const contributor = bob;
+
+    // contribute
+    const amount = 500;
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, amount);
+
+    await contribute(this.campaignSale, contributor, id, amount);
+
+    await verifyWithdraw(
+      this.campaignSale,
+      this.erc20,
+      contributor,
+      amount,
+      id
+    );
+  });
+
+  it("should succeed for multiple valid calls", async function () {
     // create campaigns to withdraw from
     const now = await getCurrentTimeInSeconds();
     const campaigns = [
@@ -166,12 +240,10 @@ describe("Withdraw", function () {
     ];
 
     // make contributions
-    let amountContributed = 0;
     for (const contribution of contributions) {
       const contributor = contribution.contributor;
       const amount = contribution.amount;
 
-      await this.erc20.mint(contributor.address, amount);
       await this.erc20
         .connect(contributor)
         .approve(this.campaignSale.address, amount);
@@ -182,65 +254,59 @@ describe("Withdraw", function () {
         contribution.campaignId,
         amount
       );
-
-      amountContributed += amount;
     }
 
     const amountOfWithdrawals = 4;
-
-    let contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
-    expect(contractBalance).to.equal(amountContributed);
-
     for (let i = 0; i < amountOfWithdrawals; i++) {
       for (const contribution of contributions) {
         const contributor = contribution.contributor;
         const amount = contribution.amount / amountOfWithdrawals;
         const campaignId = contribution.campaignId;
 
-        const initialContributorBalance = await this.erc20.balanceOf(
-          contributor.address
+        await verifyWithdraw(
+          this.campaignSale,
+          this.erc20,
+          contributor,
+          amount,
+          campaignId
         );
-        const initialContractBalance = await this.erc20.balanceOf(
-          this.campaignSale.address
-        );
-
-        await expect(
-          this.erc20
-            .connect(contributor)
-            .approve(this.campaignSale.address, amount)
-        ).not.to.be.reverted;
-
-        const tx = await this.campaignSale
-          .connect(contributor)
-          .withdraw(campaignId, amount);
-        const resp = await tx.wait();
-
-        // check event data
-        const event = resp.events?.find(
-          (e: Event) => e.event == "Withdraw"
-        ).args;
-        expect(event.id).to.equal(campaignId);
-        expect(event.caller).to.equal(contributor.address);
-        expect(event.amount).to.equal(amount);
-
-        // check balances
-        const finalContributorBalance = await this.erc20.balanceOf(
-          contributor.address
-        );
-        const contributorBalanceDifference =
-          finalContributorBalance - initialContributorBalance;
-        expect(contributorBalanceDifference).to.equal(amount);
-
-        const finalContractBalance = await this.erc20.balanceOf(
-          this.campaignSale.address
-        );
-        const contractBalanceDifference =
-          initialContractBalance - finalContractBalance;
-        expect(contractBalanceDifference).to.equal(amount);
       }
     }
-
-    contractBalance = await this.erc20.balanceOf(this.campaignSale.address);
-    expect(contractBalance).to.equal(0);
   });
 });
+
+async function verifyWithdraw(
+  campaignSale: Contract,
+  erc20: Contract,
+  contributor: SignerWithAddress,
+  amount: number,
+  campaignId: number
+) {
+  const initialContributorBalance = await erc20.balanceOf(contributor.address);
+  const initialContractBalance = await erc20.balanceOf(campaignSale.address);
+
+  await expect(erc20.connect(contributor).approve(campaignSale.address, amount))
+    .not.to.be.reverted;
+
+  const tx = await campaignSale
+    .connect(contributor)
+    .withdraw(campaignId, amount);
+  const resp = await tx.wait();
+
+  // check event data
+  const event = resp.events?.find((e: Event) => e.event == "Withdraw").args;
+  expect(event.id).to.equal(campaignId);
+  expect(event.caller).to.equal(contributor.address);
+  expect(event.amount).to.equal(amount);
+
+  // check balances
+  const finalContributorBalance = await erc20.balanceOf(contributor.address);
+  const contributorBalanceDifference =
+    finalContributorBalance - initialContributorBalance;
+  expect(contributorBalanceDifference).to.equal(amount);
+
+  const finalContractBalance = await erc20.balanceOf(campaignSale.address);
+  const contractBalanceDifference =
+    initialContractBalance - finalContractBalance;
+  expect(contractBalanceDifference).to.equal(amount);
+}
