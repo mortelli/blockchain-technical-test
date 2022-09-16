@@ -98,14 +98,14 @@ contract CampaignSale is ICampaignSale {
         require(block.timestamp < campaign.endAt, "campaign already ended");
         require(_amount > 0, "amount must be greater than 0");
 
+        campaign.pledged += _amount;
+        campaignSales[_id].contributions[msg.sender] += _amount;
+
         IERC20(erc20Token).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
-
-        campaign.pledged += _amount;
-        campaignSales[_id].contributions[msg.sender] += _amount;
 
         emit Contribute(_id, msg.sender, _amount);
     }
@@ -122,13 +122,13 @@ contract CampaignSale is ICampaignSale {
         uint256 contributorBalance = campaignSales[_id].contributions[msg.sender];
         require(_amount <= contributorBalance, "not enough balance to withdraw");
 
+        campaign.pledged -= _amount;
+        campaignSales[_id].contributions[msg.sender] -= _amount;
+
         IERC20(erc20Token).safeTransfer(
             msg.sender,
             _amount
         );
-
-        campaign.pledged -= _amount;
-        campaignSales[_id].contributions[msg.sender] -= _amount;
 
         emit Withdraw(_id, msg.sender, _amount);
     }
@@ -136,7 +136,21 @@ contract CampaignSale is ICampaignSale {
     /// @notice Claim all the tokens from the campaign
     /// @param _id Campaign's id
     function claimCampaign(uint _id) external {
+        Campaign storage campaign = campaignSales[_id].campaign;
+        require(campaign.creator != address(0), "campaign does not exist");
+        require(campaign.creator == msg.sender, "caller is not campaign creator");
+        require(block.timestamp > campaign.endAt, "campaign not yet ended");
+        require(campaign.pledged >= campaign.goal, "campaign did not reach goal");
+        require(!campaign.claimed, "campaign already claimed");
 
+        campaign.claimed = true;
+
+        IERC20(erc20Token).safeTransfer(
+            msg.sender,
+            campaign.pledged
+        );
+
+        emit ClaimCampaign(_id);
     }
 
     /// @notice Refund all the tokens to the sender
