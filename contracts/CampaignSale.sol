@@ -92,7 +92,7 @@ contract CampaignSale is ICampaignSale {
     /// @param _id Campaign's id
     /// @param _amount Amount of the contribution    
     function contribute(uint _id, uint _amount) external {
-        Campaign memory campaign = campaignSales[_id].campaign;
+        Campaign storage campaign = campaignSales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
         require(block.timestamp >= campaign.startAt, "campaign not yet started");
         require(block.timestamp < campaign.endAt, "campaign already ended");
