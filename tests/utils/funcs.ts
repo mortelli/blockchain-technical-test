@@ -80,3 +80,12 @@ export async function withdraw(
   const tx = await campaignSale.connect(contributor).withdraw(id, amount);
   await tx.wait();
 }
+
+export async function claimCampaign(
+  campaignSale: Contract,
+  creator: SignerWithAddress,
+  id: number
+): Promise<void> {
+  const tx = await campaignSale.connect(creator).claimCampaign(id);
+  await tx.wait();
+}
