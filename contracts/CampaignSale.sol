@@ -158,9 +158,8 @@ contract CampaignSale is ICampaignSale {
     function refundCampaign(uint _id) external {
         Campaign storage campaign = campaignSales[_id].campaign;
         require(campaign.creator != address(0), "campaign does not exist");
-        require(campaign.creator == msg.sender, "caller is not campaign creator");
         require(block.timestamp > campaign.endAt, "campaign not yet ended");
-        require(campaign.pledged < campaign.goal, "campaign did not reach goal");
+        require(campaign.pledged < campaign.goal, "campaign reached its goal");
         uint256 contributorBalance = campaignSales[_id].contributions[msg.sender];
         require(contributorBalance > 0, "no balance to refund");
         
