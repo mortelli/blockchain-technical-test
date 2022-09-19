@@ -25,7 +25,7 @@ contract CampaignSale is ICampaignSale {
     address public erc20Token;
 
     /// @notice Maximum amount of time a campaign can last
-    uint256 public maximumCampaignLength = 90 days;
+    uint256 public constant MAXIMUM_CAMPAIGN_LENGTH = 90 days;
 
     /// @dev Counter used for campaign IDs
     Counters.Counter private idCounter;
@@ -51,7 +51,7 @@ contract CampaignSale is ICampaignSale {
         require(_goal > 0, "goal must be greater than 0");
         require(block.timestamp < _startAt, "campaign must start in the future");
         require(_startAt < _endAt, "campaign must end after it starts");
-        require(_endAt - _startAt <= maximumCampaignLength, "campaign length exceeds maximum"); 
+        require(_endAt - _startAt <= MAXIMUM_CAMPAIGN_LENGTH, "campaign length exceeds maximum"); 
 
         idCounter.increment();
         uint256 campaignId = idCounter.current();
@@ -101,13 +101,13 @@ contract CampaignSale is ICampaignSale {
         campaign.pledged += _amount;
         campaignSales[_id].contributions[msg.sender] += _amount;
 
+        emit Contribute(_id, msg.sender, _amount);
+
         IERC20(erc20Token).safeTransferFrom(
             msg.sender,
             address(this),
             _amount
         );
-
-        emit Contribute(_id, msg.sender, _amount);
     }
 
     /// @notice Withdraw an amount from your contribution
@@ -125,12 +125,12 @@ contract CampaignSale is ICampaignSale {
         campaign.pledged -= _amount;
         campaignSales[_id].contributions[msg.sender] -= _amount;
 
+        emit Withdraw(_id, msg.sender, _amount);
+
         IERC20(erc20Token).safeTransfer(
             msg.sender,
             _amount
         );
-
-        emit Withdraw(_id, msg.sender, _amount);
     }
 
     /// @notice Claim all the tokens from the campaign
@@ -145,12 +145,12 @@ contract CampaignSale is ICampaignSale {
 
         campaign.claimed = true;
 
+        emit ClaimCampaign(_id);
+
         IERC20(erc20Token).safeTransfer(
             msg.sender,
             campaign.pledged
         );
-
-        emit ClaimCampaign(_id);
     }
 
     /// @notice Refund all the tokens to the sender
@@ -165,12 +165,12 @@ contract CampaignSale is ICampaignSale {
         
         campaignSales[_id].contributions[msg.sender] -= contributorBalance;
 
+        emit RefundCampaign(_id, msg.sender, contributorBalance);
+
         IERC20(erc20Token).safeTransfer(
             msg.sender,
             contributorBalance
         );
-
-        emit RefundCampaign(_id, msg.sender, contributorBalance);
     }
 
     /// @notice Get the campaign info

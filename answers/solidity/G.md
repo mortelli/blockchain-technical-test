@@ -1,6 +1,4 @@
-# Solidity Questions
-
-## G)
+# Solidity Question: G
 
 > _After analyzing the file “Signature.sol”, describe the use case of this contract, how to use it and all the technical steps (off-chain & on-chain) & key methods of the contract._
 
@@ -12,20 +10,20 @@ As its name implies, the contract deals with signatures. Signatures are core con
 
 ### Key methods
 
-The key method in the contract is `verify`. Its purpose is to make sure that signed data—which amounts to, ultimately, bytes—was indeed produced by the `_signer` address parameter provided in the call. 
+The key method in the contract is `verify`. Its purpose is to make sure that signed data—which amounts to, ultimately, bytes—was indeed produced by the `_signer` address parameter provided in the call.
 
 In other words: given an address, some data and a signature, this function will deterministically answer whether the signature was made on said data by said address. If not, this could be due to 2 reasons: either the data (sometimes called "message") was tampered with—meaning the signer produced a valid signature on a message, but this message was modified along the way resulting in a different signature—or the signature was provided by a different signer. There's ultimately no way to know the concrete reason for this failure due to the nature of hash functions, but the boolean result of this verification is still hugely useful.
 
-In this case, the data is packed into a hash using the `getMessageHash` and `getEthSignedMessageHash` methods, which is standard procedure for various reasons, including ones related to data length and security. In this case, the message is made up of multiple fields: 
+In this case, the data is packed into a hash using the `getMessageHash` and `getEthSignedMessageHash` methods, which is standard procedure for various reasons, including ones related to data length and security. In this case, the message is made up of multiple fields:
 
 - `_to`: an address that could be assumed ot be a destination of a message
 - `_amount`: a quantity, possibly an amount to be transferred
 - `_message`: text included as part of the message
-- `_nonce`: nonces are numbers used to prevent replay attacks. Without one, a sniffed legitimate message could be replayed, resulting in a possible attack depending on the business logic. 
+- `_nonce`: nonces are numbers used to prevent replay attacks. Without one, a sniffed legitimate message could be replayed, resulting in a possible attack depending on the business logic.
 
 An additional piece of data is added to the message, which is the `"\x19Ethereum Signed Message:\n32"` string. Although debated, appending this text to the message being hased prior to the signature is a practice widely adopted, although not officially required. It is, for example, the standard behavior of the Geth client.
 
-The result of hashing all these fields is what is presumed to be signed afterwards: packing all this data results in the hash that is verified by this  contract against the provided singature and signer parameters.
+The result of hashing all these fields is what is presumed to be signed afterwards: packing all this data results in the hash that is verified by this contract against the provided singature and signer parameters.
 
 There's 2 additional functions present in the contract: `recoverSigner` and `splitSignature`. In terms of solidity code, these aren't new. The native `ecrecover` exptects a signature de-composed into its `r`, `v` and `s` elements. `r` and `s` are documented parts of the widely-used ECDSA algorithm. `v` is a helper-sort of parameter which speeds up the process of figuring out which public key (and address, as a corolary) matches the signature.
 
