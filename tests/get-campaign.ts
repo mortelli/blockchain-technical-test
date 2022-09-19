@@ -242,9 +242,7 @@ describe("Get campaign", function () {
 
     // make sure that campaign did not reach its goal
     const contractCampaign = await this.campaignSale.getCampaign(id);
-    expect(contractCampaign.pledged).to.be.lessThanOrEqual(
-      contractCampaign.goal
-    );
+    expect(contractCampaign.pledged).to.be.lessThan(contractCampaign.goal);
 
     await verifyGetCampaign(this.campaignSale, id, {
       ...campaign,
