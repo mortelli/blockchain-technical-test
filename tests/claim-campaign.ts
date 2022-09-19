@@ -110,6 +110,10 @@ describe("Claim campaign", function () {
       campaign.endTime + 1,
     ]);
 
+    // make sure that campaign did not reach its goal
+    const contractCampaign = await this.campaignSale.getCampaign(id);
+    expect(contractCampaign.pledged).to.be.lessThan(contractCampaign.goal);
+
     await expect(
       this.campaignSale.connect(campaign.creator).claimCampaign(id)
     ).to.be.revertedWith("campaign did not reach goal");

@@ -156,7 +156,21 @@ contract CampaignSale is ICampaignSale {
     /// @notice Refund all the tokens to the sender
     /// @param _id Campaign's id
     function refundCampaign(uint _id) external {
+        Campaign storage campaign = campaignSales[_id].campaign;
+        require(campaign.creator != address(0), "campaign does not exist");
+        require(block.timestamp > campaign.endAt, "campaign not yet ended");
+        require(campaign.pledged < campaign.goal, "campaign reached its goal");
+        uint256 contributorBalance = campaignSales[_id].contributions[msg.sender];
+        require(contributorBalance > 0, "no balance to refund");
+        
+        campaignSales[_id].contributions[msg.sender] -= contributorBalance;
 
+        IERC20(erc20Token).safeTransfer(
+            msg.sender,
+            contributorBalance
+        );
+
+        emit RefundCampaign(_id, msg.sender, contributorBalance);
     }
 
     /// @notice Get the campaign info

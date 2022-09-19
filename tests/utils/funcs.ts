@@ -89,3 +89,12 @@ export async function claimCampaign(
   const tx = await campaignSale.connect(creator).claimCampaign(id);
   await tx.wait();
 }
+
+export async function refundCampaign(
+  campaignSale: Contract,
+  contributor: SignerWithAddress,
+  id: number
+): Promise<void> {
+  const tx = await campaignSale.connect(contributor).refundCampaign(id);
+  await tx.wait();
+}

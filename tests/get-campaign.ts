@@ -11,6 +11,7 @@ import {
   contribute,
   withdraw,
   claimCampaign,
+  refundCampaign,
 } from "./utils/funcs";
 
 interface CampaignData {
@@ -193,6 +194,7 @@ describe("Get campaign", function () {
     await ethers.provider.send("evm_setNextBlockTimestamp", [
       campaign.endTime + 1,
     ]);
+
     // claim campaign
     await claimCampaign(this.campaignSale, campaign.creator, id);
 
@@ -200,6 +202,53 @@ describe("Get campaign", function () {
       ...campaign,
       pledged: amount,
       claimed: true,
+    });
+  });
+
+  it("should suceed for refunded campaigns", async function () {
+    const currentTime = await getCurrentTimeInSeconds();
+    const startTime = currentTime + daysToSeconds(1);
+    const campaign = {
+      creator: charlie,
+      goal: 1000,
+      startTime: startTime,
+      endTime: startTime + daysToSeconds(2),
+    };
+
+    const id = await launchCampaign(this.campaignSale, campaign);
+
+    // increase blockchain time so that campaign is started
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.startTime,
+    ]);
+
+    // make contribution
+    const contributor = alice;
+    const contributeAmount = 10;
+    await this.erc20.mint(contributor.address, contributeAmount);
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
+
+    // increase blockchain time so that campaign is ended
+    await ethers.provider.send("evm_setNextBlockTimestamp", [
+      campaign.endTime + 1,
+    ]);
+
+    // make sure that campaign did not reach its goal
+    const contractCampaign = await this.campaignSale.getCampaign(id);
+    expect(contractCampaign.pledged).to.be.lessThan(contractCampaign.goal);
+    // but funds are still recorded
+    expect(contractCampaign.pledged).to.be.equal(contributeAmount);
+
+    // refund
+    await refundCampaign(this.campaignSale, contributor, id);
+
+    await verifyGetCampaign(this.campaignSale, id, {
+      ...campaign,
+      pledged: contributeAmount, // amount pledged should remain the same in spite of refunds
+      claimed: false,
     });
   });
 
