@@ -30,7 +30,7 @@ describe("Deployment", function () {
 
   it("should correctly set maximum campaign length", async function () {
     const maximumCampaignLength =
-      await this.campaignSale.maximumCampaignLength();
+      await this.campaignSale.MAXIMUM_CAMPAIGN_LENGTH();
 
     expect(maximumCampaignLength).to.equal(MAXIMUM_CAMPAIGN_LENGTH);
   });
