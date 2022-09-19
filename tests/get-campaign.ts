@@ -11,6 +11,7 @@ import {
   contribute,
   withdraw,
   claimCampaign,
+  refundCampaign,
 } from "./utils/funcs";
 
 interface CampaignData {
@@ -221,19 +222,14 @@ describe("Get campaign", function () {
       campaign.startTime,
     ]);
 
-    // make contributions
-    const contributors = [alice, bob];
-    const contributeAmount = (campaign.goal * 2) / 5;
-    for (const contributor of contributors) {
-      await this.erc20.mint(contributor.address, contributeAmount);
-      await this.erc20
-        .connect(contributor)
-        .approve(this.campaignSale.address, contributeAmount);
-      await contribute(this.campaignSale, contributor, id, contributeAmount);
-    }
-
-    // make withdrawal from first contributor
-    await withdraw(this.campaignSale, contributors[0], id, contributeAmount);
+    // make contribution
+    const contributor = alice;
+    const contributeAmount = 10;
+    await this.erc20.mint(contributor.address, contributeAmount);
+    await this.erc20
+      .connect(contributor)
+      .approve(this.campaignSale.address, contributeAmount);
+    await contribute(this.campaignSale, contributor, id, contributeAmount);
 
     // increase blockchain time so that campaign is ended
     await ethers.provider.send("evm_setNextBlockTimestamp", [
@@ -243,10 +239,15 @@ describe("Get campaign", function () {
     // make sure that campaign did not reach its goal
     const contractCampaign = await this.campaignSale.getCampaign(id);
     expect(contractCampaign.pledged).to.be.lessThan(contractCampaign.goal);
+    // but funds are still recorded
+    expect(contractCampaign.pledged).to.be.equal(contributeAmount);
+
+    // refund
+    await refundCampaign(this.campaignSale, contributor, id);
 
     await verifyGetCampaign(this.campaignSale, id, {
       ...campaign,
-      pledged: contributeAmount, // only 1 contribution should be left
+      pledged: contributeAmount, // amount pledged should remain the same in spite of refunds
       claimed: false,
     });
   });

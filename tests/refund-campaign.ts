@@ -173,7 +173,7 @@ describe("Refund campaign", function () {
     // increase blockchain time so that all campaigns are ended
     await ethers.provider.send("evm_setNextBlockTimestamp", [maxEndTime + 1]);
 
-    // make sure that campaign did not reached its goal
+    // make sure that campaigns did not reach their goal
     for (const id of campaignIds) {
       const contractCampaign = await this.campaignSale.getCampaign(id);
       expect(contractCampaign.pledged).to.be.lessThan(contractCampaign.goal);
