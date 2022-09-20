@@ -4,4 +4,4 @@
 >
 > _We are building a fundraising dApp that enables creators to publish their projects in order to raise money in the form of ERC20 tokens. A campaign lasts for a duration and has to raise a minimum goal to unlock the development of the project & the tokens invested by contributors. Otherwise, the contributors can get refunded._
 
-Please refer to the [README.md](./../../README.md) page of this project for the documented solution for this question.
+Please refer to the [README.md](./../../README.md#practical-excercise-documentation) page of this project for the documented solution for this question.
