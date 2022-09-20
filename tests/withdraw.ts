@@ -44,14 +44,12 @@ describe("Withdraw", function () {
   });
 
   it("should fail for a campaign not yet started", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: alice,
       goal: 10000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(10),
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(11),
     };
     const id = await launchCampaign(this.campaignSale, campaign);
 
@@ -61,23 +59,19 @@ describe("Withdraw", function () {
     ]);
 
     const contributor = bob;
-
     await expect(
       this.campaignSale.connect(contributor).withdraw(id, 1000)
     ).to.be.revertedWith("campaign not yet started");
   });
 
   it("should fail for an ended campaign", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(2);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: bob,
       goal: 20000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(20),
+      startTime: now + daysToSeconds(2),
+      endTime: now + daysToSeconds(22),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is ended
@@ -86,23 +80,19 @@ describe("Withdraw", function () {
     ]);
 
     const contributor = charlie;
-
     await expect(
       this.campaignSale.connect(contributor).withdraw(id, 2000)
     ).to.be.revertedWith("campaign already ended");
   });
 
   it("should fail for an amount of 0", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(3);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: charlie,
       goal: 30000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(30),
+      startTime: now + daysToSeconds(3),
+      endTime: now + daysToSeconds(33),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -111,7 +101,6 @@ describe("Withdraw", function () {
     ]);
 
     const contributor = alice;
-
     await expect(
       this.campaignSale.connect(contributor).withdraw(id, 0)
     ).to.be.revertedWith("amount must be greater than 0");
@@ -125,7 +114,6 @@ describe("Withdraw", function () {
       startTime: now + daysToSeconds(3),
       endTime: now + daysToSeconds(33),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -135,7 +123,7 @@ describe("Withdraw", function () {
 
     const contributor = bob;
 
-    // withdraw before contributing
+    // attempt to withdraw before contributing
     await expect(
       this.campaignSale.connect(contributor).withdraw(id, 100)
     ).to.be.revertedWith("not enough balance to withdraw");
@@ -145,10 +133,9 @@ describe("Withdraw", function () {
     await this.erc20
       .connect(contributor)
       .approve(this.campaignSale.address, contributeAmount);
-
     await contribute(this.campaignSale, contributor, id, contributeAmount);
 
-    // then attempt to withdraw greater amount
+    // then attempt to withdraw more than contributed
     const withdrawAmount = 1000;
     expect(withdrawAmount).to.be.greaterThan(contributeAmount);
     await expect(
@@ -164,7 +151,6 @@ describe("Withdraw", function () {
       startTime: now + daysToSeconds(1),
       endTime: now + daysToSeconds(8),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -172,16 +158,15 @@ describe("Withdraw", function () {
       campaign.startTime,
     ]);
 
-    const contributor = bob;
-
     // contribute
+    const contributor = bob;
     const amount = 500;
     await this.erc20
       .connect(contributor)
       .approve(this.campaignSale.address, amount);
-
     await contribute(this.campaignSale, contributor, id, amount);
 
+    // then withdraw
     await verifyWithdraw(
       this.campaignSale,
       this.erc20,
@@ -244,7 +229,6 @@ describe("Withdraw", function () {
       await this.erc20
         .connect(contributor)
         .approve(this.campaignSale.address, amount);
-
       await contribute(
         this.campaignSale,
         contributor,
@@ -257,7 +241,7 @@ describe("Withdraw", function () {
     for (let i = 0; i < amountOfWithdrawals; i++) {
       for (const contribution of contributions) {
         const contributor = contribution.contributor;
-        const amount = contribution.amount / amountOfWithdrawals;
+        const amount = Math.floor(contribution.amount / amountOfWithdrawals);
         const campaignId = contribution.campaignId;
 
         await verifyWithdraw(
