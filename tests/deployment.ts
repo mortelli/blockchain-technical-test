@@ -24,14 +24,12 @@ describe("Deployment", function () {
 
   it("should correctly set ERC20 token", async function () {
     const erc20Token = await this.campaignSale.erc20Token();
-
     expect(erc20Token).to.equal(this.erc20.address);
   });
 
   it("should correctly set maximum campaign length", async function () {
     const maximumCampaignLength =
       await this.campaignSale.MAXIMUM_CAMPAIGN_LENGTH();
-
     expect(maximumCampaignLength).to.equal(MAXIMUM_CAMPAIGN_LENGTH);
   });
 });
