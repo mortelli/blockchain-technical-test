@@ -37,13 +37,11 @@ describe("Contribute", function () {
   it("should fail for invalid campaigns", async function () {
     const amount = 1000;
 
-    await expect(this.campaignSale.contribute(0, amount)).to.be.revertedWith(
-      "campaign does not exist"
-    );
-
-    await expect(this.campaignSale.contribute(1, amount)).to.be.revertedWith(
-      "campaign does not exist"
-    );
+    for (const id of [0, 1]) {
+      await expect(this.campaignSale.contribute(id, amount)).to.be.revertedWith(
+        "campaign does not exist"
+      );
+    }
   });
 
   it("should fail for a campaign not yet started", async function () {

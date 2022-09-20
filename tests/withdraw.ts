@@ -37,13 +37,11 @@ describe("Withdraw", function () {
   it("should fail for invalid campaigns", async function () {
     const amount = 1000;
 
-    await expect(this.campaignSale.withdraw(0, amount)).to.be.revertedWith(
-      "campaign does not exist"
-    );
-
-    await expect(this.campaignSale.withdraw(1, amount)).to.be.revertedWith(
-      "campaign does not exist"
-    );
+    for (const id of [0, 1]) {
+      await expect(this.campaignSale.withdraw(id, amount)).to.be.revertedWith(
+        "campaign does not exist"
+      );
+    }
   });
 
   it("should fail for a campaign not yet started", async function () {

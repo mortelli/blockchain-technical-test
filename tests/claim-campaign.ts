@@ -32,13 +32,11 @@ describe("Claim campaign", function () {
   });
 
   it("should fail for invalid campaigns", async function () {
-    await expect(this.campaignSale.claimCampaign(0)).to.be.revertedWith(
-      "campaign does not exist"
-    );
-
-    await expect(this.campaignSale.claimCampaign(1)).to.be.revertedWith(
-      "campaign does not exist"
-    );
+    for (const id of [0, 1]) {
+      await expect(this.campaignSale.claimCampaign(id)).to.be.revertedWith(
+        "campaign does not exist"
+      );
+    }
   });
 
   it("should fail for invalid caller", async function () {

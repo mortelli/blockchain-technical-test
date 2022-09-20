@@ -15,7 +15,7 @@ describe("Deployment", function () {
     ).to.be.revertedWith("erc20 cannot be zero address");
   });
 
-  it("should succeed with non-zero address as ERC20 token", async function () {
+  it("should succeed for non-zero address as ERC20 token", async function () {
     this.campaignSale = await this.campaignSaleFactory.deploy(
       this.erc20.address
     );
