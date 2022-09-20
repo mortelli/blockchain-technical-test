@@ -6,7 +6,7 @@ EIP-2771 is a scoped proposal on how to accept or reject incoming meta-transacti
 
 Meta-transactions are transactions which contain (other) embedded transactions in them. They are a sort of "wrapped" transaction or request. It might sound far-fetched, but the concept makes a lot of sense and proves its usefulness when it is considered that the embedded transaction retains its integrity as a request from a third party, _but at the same time_ cannot/will not be paid for with ETH (or any other native token of choice).
 
-This EIP (or meta-transactions, in general) do not propose a change to the EVM in terms of whether gas is paid for or not, or even how it is paid for. As far as the blockchain is concerned, everything remains the same: all transactions use gas and this gas must be paid for, all transactions have a _sender_, and so on. 
+This EIP (or meta-transactions, in general) do not propose a change to the EVM in terms of whether gas is paid for or not, or even how it is paid for. As far as the blockchain is concerned, everything remains the same: all transactions use gas and this gas must be paid for, all transactions have a _sender_, and so on.
 
 So it is up to the contracts to go further than this point, i.e. reading the data contained in a transaction, interpreting the embedded sender (which is not the transaction sender) and executing their implicit request.
 
@@ -20,9 +20,9 @@ In summary, for a recipient to support meta transactions, it needs to use a diff
 
 Although no EVM changes are proposed, it is clear that supporting meta-transactions requires—minimally—for the recipient contract to be aware of them, for it to expect an original sender address encoded in a particular way, and for it to explicitly trust the forwarder that sends the meta-transactions.
 
-This EIP does not address the fact that there needs to be a way to fund the forwarder, since it is the entity that pays for the wrapping transaction. This can also be considered out of scope for this EIP. 
+This EIP does not address the fact that there needs to be a way to fund the forwarder, since it is the entity that pays for the wrapping transaction. This can also be considered out of scope for this EIP.
 
-Since meta-transactions are ETH-less or gasless transactions, the most obvious use case for this is lowering the entrance barrier for new users of a system. Because transactions must be paid for with native tokens (which for users ultimately means fiat money), this can result in resistance of adoption of any system which uses transactions, i.e. dApps. 
+Since meta-transactions are ETH-less or gasless transactions, the most obvious use case for this is lowering the entrance barrier for new users of a system. Because transactions must be paid for with native tokens (which for users ultimately means fiat money), this can result in resistance of adoption of any system which uses transactions, i.e. dApps.
 
 One could choose to fund specific types of transactions for free for new users, assuming the gas costs in exchange for system adoption. Or, alternatively, one could accept tokens as a form of payment. Meaning: the user does not pay for gas, but as a result of executing the meta-transaction, tokens are transferred from the transaction signer to some other account of the system, resulting in an exchange of transaction execution (or gas) for non-native tokens. The approval of the tokens must be authorized and be part of the meta-transaction logic and be ultimately executed at the recipient level, as an atomic operation included in the execution of the embedded transaction itself.
 

@@ -6,7 +6,7 @@ In Ethereum, no-one can act on behalf of a smart contract. There is no private k
 
 As a consequence of this, centralization issues usually stem from access control, i.e. "who is allowed to do what". Many contracts implement ownership or role-based access control, meaning that there are addresses _other_ than the smart contract itself which have certain privileges or are allowed to execute certain admin or owner-only actions.
 
-If there is no admin or owner of the contract, then this problem can be avoided. However, this is usually not the case, as some access control is usually necessary in protocols or systems with non-trivial complexity. 
+If there is no admin or owner of the contract, then this problem can be avoided. However, this is usually not the case, as some access control is usually necessary in protocols or systems with non-trivial complexity.
 
 If there is just _one_ address that controls everything in terms of protocol adjustments or admin-only actions, then security is entirely centralized. Having a more nuanced approach can help mitigate this problem. This means having role-based ownership instead of just 1 owner. Technically, this can be implemented through OpenZeppelin's Access Control contracts. After roles are defined instead of just complete ownership for one address, more sensitive actions can be limited to more exclusive roles, meaning that the protocol can still be adjusted by some actors without them having complete power over it.
 

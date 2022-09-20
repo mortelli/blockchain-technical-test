@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Event } from "ethers";
+import { Contract, Event } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   deployCampaignSale,
@@ -19,37 +19,32 @@ describe("Claim campaign", function () {
   before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
 
-    // deployed contract
     this.campaignSale = await deployCampaignSale();
     const erc20Token = await this.campaignSale.erc20Token();
 
+    // mint tokens so that contributions can be made
     const tokenAmount = 100000;
     const erc20Factory = await ethers.getContractFactory("TestERC20");
     this.erc20 = erc20Factory.attach(erc20Token);
 
-    // mint for contributions
     await this.erc20.mint(alice.address, tokenAmount);
   });
 
   it("should fail for invalid campaigns", async function () {
-    await expect(this.campaignSale.claimCampaign(0)).to.be.revertedWith(
-      "campaign does not exist"
-    );
-
-    await expect(this.campaignSale.claimCampaign(1)).to.be.revertedWith(
-      "campaign does not exist"
-    );
+    for (const id of [0, 1]) {
+      await expect(this.campaignSale.claimCampaign(id)).to.be.revertedWith(
+        "campaign does not exist"
+      );
+    }
   });
 
   it("should fail for invalid caller", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: alice,
       goal: 15000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(8),
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(9),
     };
     const id = await launchCampaign(this.campaignSale, campaign);
 
@@ -59,14 +54,12 @@ describe("Claim campaign", function () {
   });
 
   it("should fail for a campaign not yet ended", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(2);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: bob,
       goal: 5000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(16),
+      startTime: now + daysToSeconds(2),
+      endTime: now + daysToSeconds(18),
     };
     const id = await launchCampaign(this.campaignSale, campaign);
 
@@ -81,16 +74,13 @@ describe("Claim campaign", function () {
   });
 
   it("should fail for a campaign that did not reach its goal", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: charlie,
       goal: 100000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(31),
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(31),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -120,14 +110,12 @@ describe("Claim campaign", function () {
   });
 
   it("should succeed for a campaign that reached its goal", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(3);
-
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: bob,
       goal: 10000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(24),
+      startTime: now + daysToSeconds(3),
+      endTime: now + daysToSeconds(27),
     };
     const id = await launchCampaign(this.campaignSale, campaign);
 
@@ -148,39 +136,13 @@ describe("Claim campaign", function () {
       campaign.endTime + 1,
     ]);
 
-    const initialCreatorBalance = await this.erc20.balanceOf(
-      campaign.creator.address
+    await verifyClaimCampaign(
+      this.campaignSale,
+      this.erc20,
+      campaign.creator,
+      campaign.goal,
+      id
     );
-    const initialContractBalance = await this.erc20.balanceOf(
-      this.campaignSale.address
-    );
-
-    // then claim
-    const tx = await this.campaignSale
-      .connect(campaign.creator)
-      .claimCampaign(id);
-    const resp = await tx.wait();
-
-    // check event data
-    const event = resp.events?.find(
-      (e: Event) => e.event == "ClaimCampaign"
-    ).args;
-    expect(event.id).to.equal(id);
-
-    // check balances
-    const finalCreatorBalance = await this.erc20.balanceOf(
-      campaign.creator.address
-    );
-    const creatorBalanceDifference =
-      finalCreatorBalance - initialCreatorBalance;
-    expect(creatorBalanceDifference).to.equal(campaign.goal);
-
-    const finalContractBalance = await this.erc20.balanceOf(
-      this.campaignSale.address
-    );
-    const contractBalanceDifference =
-      initialContractBalance - finalContractBalance;
-    expect(contractBalanceDifference).to.equal(campaign.goal);
 
     // save campaign for next test
     this.campaign = campaign;
@@ -195,3 +157,36 @@ describe("Claim campaign", function () {
     ).to.be.revertedWith("campaign already claimed");
   });
 });
+
+async function verifyClaimCampaign(
+  campaignSale: Contract,
+  erc20: Contract,
+  campaignCreator: SignerWithAddress,
+  campaignGoal: number,
+  campaignId: number
+) {
+  const initialCreatorBalance = await erc20.balanceOf(campaignCreator.address);
+  const initialContractBalance = await erc20.balanceOf(campaignSale.address);
+
+  // then claim
+  const tx = await campaignSale
+    .connect(campaignCreator)
+    .claimCampaign(campaignId);
+  const resp = await tx.wait();
+
+  // check event data
+  const event = resp.events?.find(
+    (e: Event) => e.event == "ClaimCampaign"
+  ).args;
+  expect(event.id).to.equal(campaignId);
+
+  // check balances
+  const finalCreatorBalance = await erc20.balanceOf(campaignCreator.address);
+  const creatorBalanceDifference = finalCreatorBalance - initialCreatorBalance;
+  expect(creatorBalanceDifference).to.equal(campaignGoal);
+
+  const finalContractBalance = await erc20.balanceOf(campaignSale.address);
+  const contractBalanceDifference =
+    initialContractBalance - finalContractBalance;
+  expect(contractBalanceDifference).to.equal(campaignGoal);
+}

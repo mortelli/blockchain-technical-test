@@ -32,10 +32,8 @@ describe("Get campaign", function () {
   before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
 
-    // deployed contract
     this.campaignSale = await deployCampaignSale();
     const erc20Token = await this.campaignSale.erc20Token();
-
     const erc20Factory = await ethers.getContractFactory("TestERC20");
     this.erc20 = erc20Factory.attach(erc20Token);
   });
@@ -46,23 +44,22 @@ describe("Get campaign", function () {
     );
   });
 
-  it("should fail for first ID before creating a campaign", async function () {
+  it("should fail for first id before creating a campaign", async function () {
     await expect(this.campaignSale.getCampaign(1)).to.be.revertedWith(
       "campaign does not exist"
     );
   });
 
-  it("should succeed for first ID after creating a campaign", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(10);
+  it("should succeed for first id after creating a campaign", async function () {
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: alice,
       goal: 10000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(10),
+      startTime: now + daysToSeconds(10),
+      endTime: now + daysToSeconds(20),
     };
-
     await launchCampaign(this.campaignSale, campaign);
+
     await verifyGetCampaign(this.campaignSale, 1, {
       ...campaign,
       pledged: 0,
@@ -77,16 +74,15 @@ describe("Get campaign", function () {
   });
 
   it("should fail for canceled campaign", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1);
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: bob,
       goal: 20000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(14),
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(15),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
+
     await cancelCampaign(this.campaignSale, campaign.creator, id);
 
     await expect(this.campaignSale.getCampaign(id)).to.be.revertedWith(
@@ -95,15 +91,13 @@ describe("Get campaign", function () {
   });
 
   it("should suceed for campaigns with contributions", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(5);
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: charlie,
       goal: 30000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(21),
+      startTime: now + daysToSeconds(5),
+      endTime: now + daysToSeconds(26),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -111,7 +105,6 @@ describe("Get campaign", function () {
       campaign.startTime,
     ]);
 
-    // make contribution
     const contributor = alice;
     const amount = 7000;
     await this.erc20.mint(contributor.address, amount);
@@ -128,15 +121,13 @@ describe("Get campaign", function () {
   });
 
   it("should suceed for campaigns with withdrawals", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(2);
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: bob,
       goal: 10000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(9),
+      startTime: now + daysToSeconds(2),
+      endTime: now + daysToSeconds(11),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -153,7 +144,6 @@ describe("Get campaign", function () {
       .approve(this.campaignSale.address, contributeAmount);
     await contribute(this.campaignSale, contributor, id, contributeAmount);
 
-    // make withdrawal
     const withdrawAmount = 5000;
     await withdraw(this.campaignSale, contributor, id, withdrawAmount);
 
@@ -165,15 +155,13 @@ describe("Get campaign", function () {
   });
 
   it("should suceed for claimed campaign", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(5);
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: alice,
       goal: 30000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(21),
+      startTime: now + daysToSeconds(5),
+      endTime: now + daysToSeconds(26),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -195,7 +183,6 @@ describe("Get campaign", function () {
       campaign.endTime + 1,
     ]);
 
-    // claim campaign
     await claimCampaign(this.campaignSale, campaign.creator, id);
 
     await verifyGetCampaign(this.campaignSale, id, {
@@ -206,15 +193,13 @@ describe("Get campaign", function () {
   });
 
   it("should suceed for refunded campaigns", async function () {
-    const currentTime = await getCurrentTimeInSeconds();
-    const startTime = currentTime + daysToSeconds(1);
+    const now = await getCurrentTimeInSeconds();
     const campaign = {
       creator: charlie,
       goal: 1000,
-      startTime: startTime,
-      endTime: startTime + daysToSeconds(2),
+      startTime: now + daysToSeconds(1),
+      endTime: now + daysToSeconds(2),
     };
-
     const id = await launchCampaign(this.campaignSale, campaign);
 
     // increase blockchain time so that campaign is started
@@ -222,7 +207,6 @@ describe("Get campaign", function () {
       campaign.startTime,
     ]);
 
-    // make contribution
     const contributor = alice;
     const contributeAmount = 10;
     await this.erc20.mint(contributor.address, contributeAmount);
@@ -242,7 +226,6 @@ describe("Get campaign", function () {
     // but funds are still recorded
     expect(contractCampaign.pledged).to.be.equal(contributeAmount);
 
-    // refund
     await refundCampaign(this.campaignSale, contributor, id);
 
     await verifyGetCampaign(this.campaignSale, id, {
