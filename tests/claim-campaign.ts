@@ -19,15 +19,14 @@ describe("Claim campaign", function () {
   before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
 
-    // deployed contract
     this.campaignSale = await deployCampaignSale();
     const erc20Token = await this.campaignSale.erc20Token();
 
+    // mint tokens so that contributions can be made
     const tokenAmount = 100000;
     const erc20Factory = await ethers.getContractFactory("TestERC20");
     this.erc20 = erc20Factory.attach(erc20Token);
 
-    // mint for contributions
     await this.erc20.mint(alice.address, tokenAmount);
   });
 

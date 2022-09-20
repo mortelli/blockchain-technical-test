@@ -18,7 +18,6 @@ describe("Cancel campaign", function () {
   before(async function () {
     [alice, bob, charlie] = await ethers.getSigners();
 
-    // deployed contract
     this.campaignSale = await deployCampaignSale();
   });
 

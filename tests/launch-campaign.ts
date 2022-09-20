@@ -19,7 +19,6 @@ describe("Launch campaign", function () {
     [alice, bob, charlie] = await ethers.getSigners();
     this.campaignCreators = [alice, bob, charlie];
 
-    // deployed contract
     this.campaignSale = await deployCampaignSale();
 
     // arbitrary values expected to succeed as campaign creation parameters to fill in test calls
