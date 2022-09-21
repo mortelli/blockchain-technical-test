@@ -4,7 +4,7 @@
 
 EIP-2771 is a scoped proposal on how to accept or reject incoming meta-transactions in a contract (called "recipient") and sent by another trusted contract (called "forwarder") which originates these requests.
 
-Meta-transactions are transactions which contain (other) embedded transactions in them. They are a sort of "wrapped" transaction or request. It might sound far-fetched, but the concept makes a lot of sense and proves its usefulness when it is considered that the embedded transaction retains its integrity as a request from a third party, _but at the same time_ cannot/will not be paid for with ETH (or any other native token of choice).
+Meta-transactions are transactions which contain (other) embedded transactions in them. They are a sort of "wrapped" transaction or request. It might sound far-fetched, but the concept makes a lot of sense and proves its usefulness when it is considered that the embedded transaction retains its integrity as a request from a third party, _but at the same time_ can not/will not be paid for with ETH (or any other native token of choice).
 
 This EIP (or meta-transactions, in general) do not propose a change to the EVM in terms of whether gas is paid for or not, or even how it is paid for. As far as the blockchain is concerned, everything remains the same: all transactions use gas and this gas must be paid for, all transactions have a _sender_, and so on.
 
@@ -22,13 +22,13 @@ Although no EVM changes are proposed, it is clear that supporting meta-transacti
 
 This EIP does not address the fact that there needs to be a way to fund the forwarder, since it is the entity that pays for the wrapping transaction. This can also be considered out of scope for this EIP.
 
-Since meta-transactions are ETH-less or gasless transactions, the most obvious use case for this is lowering the entrance barrier for new users of a system. Because transactions must be paid for with native tokens (which for users ultimately means fiat money), this can result in resistance of adoption of any system which uses transactions, i.e. dApps.
+Since meta-transactions are ETH-less or gasless transactions, the most obvious use case for this is lowering the entrance barrier for new users in a system. Because transactions must be paid for with native tokens (which for users ultimately means fiat money), this can result in resistance of adoption of any system which uses transactions, i.e. dApps.
 
 One could choose to fund specific types of transactions for free for new users, assuming the gas costs in exchange for system adoption. Or, alternatively, one could accept tokens as a form of payment. Meaning: the user does not pay for gas, but as a result of executing the meta-transaction, tokens are transferred from the transaction signer to some other account of the system, resulting in an exchange of transaction execution (or gas) for non-native tokens. The approval of the tokens must be authorized and be part of the meta-transaction logic and be ultimately executed at the recipient level, as an atomic operation included in the execution of the embedded transaction itself.
 
 If non-native tokens can be used to paid for gas, this could also result in an increase of value for that particular coin. An ERC20 token or governance token could have its value increased if it is accepted (even in controlled or limited contexts) as payment for gas.
 
-This can also appear to increase privacy. Everything on the blockchain should be assumed public since it is the nature of such ledgers, and transactions could eventually be reverse-engineered to be plainly read. However, the executor of meta-transactions is always the same entity (or set of entities), so this can make the process of reverse-engineering this data slightly harder (but never impossible).
+This can also appear to increase privacy. Everything on the blockchain should be assumed public since it is the nature of such ledgers, and transactions could eventually be reverse-engineered to be plainly read. However, the executor of meta-transactions is always the same entity (or set of entities), so this can make the process of reverse-engineering this data slightly harder, though never impossible.
 
 Additionally, it is a way of centralizing gas costs. In terms of accounting, it is much easier to keep track of gas spent by a single entity rather than by all users of a platform, but this is more of an administrative use case or advantage.
 
