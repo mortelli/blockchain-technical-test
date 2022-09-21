@@ -1,10 +1,8 @@
-# The Sandbox: Blockchain Technical Test
+# Blockchain Technical Test
 
-This repo contains answers for _The Sandbox's Blockchain Technical Test_ questions, as well as the code for the practical excercise (question `J`).
+This repo contains answers for a Blockchain Technical Test challenge, as well as the code for the practical excercise (question `J`).
 
 Answers for each individual question can be found in the [answers](./answers/) directory.
-
-The original questions and code can be found in the [instructions](./instructions/) directory.
 
 ## Practical excercise documentation
 
