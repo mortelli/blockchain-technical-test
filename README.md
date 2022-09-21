@@ -30,7 +30,7 @@ npm i
 npm run test
 ```
 
-#### Test Coverage
+#### Test coverage
 
 ```shell
 npm run coverage
