@@ -8,7 +8,9 @@ The first example that comes to mind is block hashes. If an attacker were to mod
 
 Hashing is also involved in the mining process. Because hash functions output fixed-length results, the mining process for a block in a _Proof of Work_ consensus algorithm is over once a miner finds number which, when used in conjunction with the mined block data, produces a hash with a certain number of leading zeroes (also known as difficulty). This means that hashing functions are a critical part of the Proof of Work algorithm.
 
-Hashing functions are also used as part of the process of signing messages. Digital signature algorithms such as ECDSA provide a way of assuring non-repudiation and data integrity, and are widely used in trustless environments. Calculating hashes is a neccesary step when deriving an address based on a public key, meaning hashes are used for both signing messages as well as verifying signatures.
+Hashing functions are also used as part of the process of signing messages. Digital signature algorithms such as ECDSA provide a way of assuring non-repudiation and data integrity, and are widely used in trustless environments. Calculating hashes is a neccesary step when deriving an address based on a public key, meaning hashes are used for both signing messages as well as verifying signatures, in addition to producing addresses.
+
+Transactions also have their ID values set through a process which includes hashing transaction fields like its nonce, gas price, gas limit, among others.
 
 Without hashes, it's not possible for a blockchain to maintain its immutability; neither would it be to prove a certain address signed a message. Breaking a hashing algorithm would mean breaking the security of any blockchain system that uses it.
 
