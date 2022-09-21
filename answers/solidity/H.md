@@ -48,9 +48,9 @@ causing `durationDelta` to equal `0`, and therefore the reward to have a value o
 
 This line should be removed, and let the last depost time be updated on the next deposit.
 
-Moreover, this function's 2 `require` statements can never fail. Because `totalStaked` and `rewardTotal` are defined as `uint`, they can never take a negative value. If `amount` or `reward` were to take greater values than them, the substraction would underflow, causing a revert of the `withdraw` call before the `require` statements are reached.
+Moreover, this function's 2 `require` statements can never fail. Because `totalStaked` and `rewardTotal` are defined as `uint`, they can never take a negative value. If `amount` or `reward` were to take greater values than them, the substraction would underflow, causing a revert of the `withdraw` call before the `require` statements are reached. They can be safely removed.
 
-This function should also require user balance to be greater than `0` and revert otherwise, in order to save gas and prevent meaningless transfers of 0 tokens.
+This function should also require user balance to be greater than `0` and revert otherwise, in order to save gas and prevent pointless, wasteful transfers of 0 tokens.
 
 ## `computeReward`
 
